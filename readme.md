@@ -11,7 +11,6 @@ User-specific stylesheets (add simple gui)
 emojis
 Images
 User profiles
-Allow the sending of html tags
 Login page
 
 ENOBUFS error (unsure as to why)
