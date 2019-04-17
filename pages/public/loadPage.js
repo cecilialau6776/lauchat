@@ -1,4 +1,4 @@
-//mongo command to clear all msgs: db.messages.deleteMany({id: { $gt: 0}})
+//mongo command to clear all msgs: db.messages.deleteMany({ id: { $gt: 0 } })
 localStorage.removeItem("name");
 if (localStorage.getItem("uid") == null) {
     $(document).ready(() => {
@@ -15,10 +15,12 @@ if (localStorage.getItem("uid") == null) {
             var data = new FormData();
             data.append("username", $.trim($("#username").val()));
             data.append("password", $.trim($("#password").val()));
-            console.log(data.get("password") == "");
             if (data.get("username").includes(" ") || data.get("password").includes(" ")) {
                 $("#alert").html(`
                 <p>Invalid username/password: No spaces allowed.</p>`);
+            } else if (data.get("username") == "" || data.get("passowrd") == "") {
+                $("#alert").html(`
+                <p>Invalid username/password: Neither can be blank.</p>`);
             } else {
                 $.ajax({
                     method: 'POST',
@@ -27,10 +29,13 @@ if (localStorage.getItem("uid") == null) {
                     processData: false,
                     data: data,
                     success: function (data) {
-                        console.log(data)
                         localStorage.setItem("uid", data["uid"]);
                         localStorage.setItem("token", data["token"]);
-                        window.location.href = "/";
+                        if (data.status == "success") {
+                            window.location.href = "/";
+                        } else {
+                            $("#alert").html("<p>" + data.message + "</p>");
+                        }
                     }
                 })
             }
