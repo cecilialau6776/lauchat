@@ -9,7 +9,16 @@ if (localStorage.getItem("uid") == null) {
             <input type="submit" id="registerButton" name="submit" value="Register">
         </form>
         <div id="alert">
-        </div>`);
+        </div>
+        <br>
+        <br>
+        <form method="POST" enctype="multipart/form-data" name="login">
+            <input type="text" placeholder="Username" id="loginUsername" name="username" required><br>
+            <input type="password" placeholder="Password" id="loginPassword" name="password" required><br>
+            <input type="submit" id="loginButton" name="submit" value="login">
+        </form>
+        <div id="loginAlert">
+        </login>`);
         $("#registerButton").click(function (event) {
             event.preventDefault();
             var data = new FormData();
@@ -40,12 +49,46 @@ if (localStorage.getItem("uid") == null) {
                 })
             }
 
+        });
+        $("#loginButton").click(function (event) {
+            event.preventDefault();
+            var data = new FormData();
+            data.append("username", $.trim($("#loginUsername").val()));
+            data.append("password", $.trim($("#loginPassword").val()));
+            console.log(data.get("username"), data.get("password"));
+            if (data.get("username").includes(" ") || data.get("password").includes(" ")) {
+                $("#alert").html(`
+                <p>Invalid username/password: No spaces allowed.</p>`);
+            } else if (data.get("username") == "" || data.get("passowrd") == "") {
+                $("#loginAlert").html(`
+                <p>Invalid username/password: Neither can be blank.</p>`);
+            } else {
+                $.ajax({
+                    method: 'POST',
+                    url: '/api/login',
+                    contentType: false,
+                    processData: false,
+                    data: data,
+                    success: function (data) {
+                        localStorage.setItem("uid", data["uid"]);
+                        localStorage.setItem("token", data["token"]);
+                        if (data.status == "success") {
+                            window.location.href = "/";
+                        } else {
+                            $("#alert").html("<p>" + data.message + "</p>");
+                        }
+                    }
+                })
+            }
+
         })
     })
 } else {
     goog.require("goog.html.sanitizer.HtmlSanitizer");
     goog.require("goog.html.sanitizer.HtmlSanitizer.Builder");
     goog.require("goog.html.SafeHtml");
+    if (!Notification) {alert('Desktop notifications not available in your browser. Try Chromium.');}
+    if (Notification.permission !== "granted") {Notification.requestPermission();}
     $(document).ready(function () {
         var info = { uid: localStorage.getItem("uid"), token: localStorage.getItem("token") };
         $.ajax({

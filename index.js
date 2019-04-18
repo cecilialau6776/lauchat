@@ -33,6 +33,7 @@ io.on('connection', (socket) => {
 	})
 	socket.on('chat message', (data) => {
 		data["timestamp"] = new Date().getTime();
+
 		mongoClient.connect(mongoUrl, (err, db) => {
 			if (err) throw err;
 			var dbo = db.db("mostWanted");
@@ -130,6 +131,26 @@ app.post('/api/register', (req, res) => {
 		})
 })
 
+app.post('/api/login', (req, res) => {
+	var form = new formidable.IncomingForm();
+	var userData = {};
+	var pw;
+	form.parse(req)
+		.on('field', function (name, value) {
+			userData[name] = value;
+		})
+		.on('end', function () {
+			pw = userData.password;
+			userData.username = userData.username.trim();
+			userData.password = userData.password.trim();
+			// userData["nickname"] = userData.username;
+			login(userData.username, pw).then((data) => {
+				console.log(data);
+				res.send(data);
+			})
+		});
+})
+
 app.post('/api/online', (req, res) => {
 	mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
 		if (err) throw err;
@@ -144,6 +165,24 @@ app.post('/api/online', (req, res) => {
 		})
 	})
 })
+
+// https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript
+function getIndicesOf(searchStr, str, caseSensitive) {
+    var searchStrLen = searchStr.length;
+    if (searchStrLen == 0) {
+        return [];
+    }
+    var startIndex = 0, index, indices = [];
+    if (!caseSensitive) {
+        str = str.toLowerCase();
+        searchStr = searchStr.toLowerCase();
+    }
+    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+        indices.push(index);
+        startIndex = index + searchStrLen;
+    }
+    return indices;
+}
 
 async function register(userData) {
 	return new Promise((resolve, reject) => {
