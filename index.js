@@ -7,11 +7,14 @@ const formidable = require('formidable');
 const bCrypt = require('bcrypt');
 const crypto = require('crypto');
 const xss = require('xss');
+const favicon = require('serve-favicon');
 
 require('google-closure-library');
 goog.require("goog.html.sanitizer.HtmlSanitizer");
 goog.require("goog.html.sanitizer.HtmlSanitizer.Builder");
 goog.require("goog.html.SafeHtml");
+app.use(favicon(__dirname + '/pages/public/favicon.ico'));
+
 
 // const builder = new goog.html.sanitizer.HtmlSanitizer.Builder();
 // builder.onlyAllowTags(["IMG"]);
@@ -94,6 +97,10 @@ app.get('/loadPage.js', (req, res) => {
 app.get('/loadTest.js', (req, res) => {
 	res.sendFile(__dirname + "/pages/public/loadTest.js");
 });
+
+app.get('/favicon.png', (eq, res) => {
+	res.sendFile(__dirname + "/pages/public/favicon.png");
+})
 
 app.get('/closure-library/:a/:b/:c', (req, res) => {
 	res.sendFile(__dirname + "/pages/public/closure-library/" + req.params.a + "/" + req.params.b + "/" + req.params.c);

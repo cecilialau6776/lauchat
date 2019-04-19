@@ -11,26 +11,73 @@
     <script src="/loadPage.js"></script>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
-    p {
-        width: 100%;
-    }
+        p {
+            width: 100%;
+        }
+
+        .scrollable {
+            position: absolute;
+            overflow: hidden;
+            overflow-y: auto;
+            height: 100%;
+        }
     </style>
 </head>
 
-<body>
+<body style="max-width: 100%; overflow-x: hidden;">
     <div id="enterName">
 
     </div>
-    <div class="row">
-        <div class="container" id="chat" style="padding-bottom: 30px;">
+    <div class="container" style="height: 100%; max-width: 100%;">
+        <div class="row no-gutters">
+            <div class="col-md-1 scrollable">
+                <div class="row no-gutters">
+                    <div class="col">
+                        <h1>1</h1>
+                    </div>
+                </div>
+                <!-- <h1>1</h1> -->
+                <h1>2</h1>
+            </div>
+            <div class="col-md-2 offset-md-1 scrollable">
+                <h3>#general</h3>
+                <h3>#these-are</h3>
+                <h3>#placeholders</h3>
+                <h3>#and-dont-do</h3>
+                <h3>#anything</h3>
+            </div>
+            <div class="col-md-7 offset-md-3 scrollable" id="chat-div">
+                <div class="row no-gutters">
+                    <div class="container" id="chat" style="padding-bottom: 30px;">
 
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 offset-md-10 scrollable">
+                <p>Pixel</p>
+                <p>These too</p>
+            </div>
+        </div>
+        <div class="row no-gutters" style="position: fixed;bottom:0; width: 100%">
+                <!-- <div class="col-md-1 scrollable">
+    
+                </div> -->
+                <div class="col-md-2 offset-md-1">
+                    <p style="display: block" onclick="document.getElementById('chat-div').scrollTo(0,1000)">Settings</p>
+                </div>
+                <div class="col-md-7 offset-md-3">
+                    <form name="chat" id="chatForm" style="position: fixed; bottom: 0; width: 100%;">
+                        <div class="row" id="message">
+                            
+                        </div>
+                    </form>
+                </div>
+                <!-- <div class="col-md-2 offset-md-10 scrollable">
+    
+                </div> -->
         </div>
     </div>
-    <form name="chat" id="chatForm">
-        <div class="row fixed-bottom" id="message">
 
-        </div>
-    </form>
 </body>
 
 </html>

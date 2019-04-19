@@ -124,6 +124,10 @@ if (localStorage.getItem("uid") == null) {
                         console.log(data);
                     }))
                     socket.on('sendChatMessage', (msgData) => {
+                        if (msgData.length > 0 && !document.hasFocus() && localStorage.getItem("last") != 0 && localStorage.getItem("notifsOn") == "true") {
+                            if (msgData.length > 1) {notifyMe(msgData.length + " new messages!");}
+                            else { notifyMe(msgData[0].nickname + ": " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(msgData[0].message))) }
+                        }
                         console.log(msgData);
                         //console.log(msgData);
                         //set localstorage last
@@ -133,7 +137,7 @@ if (localStorage.getItem("uid") == null) {
                         //console.log(loadLast, data);
                         for (var i = 0; i < data.length; i++) {
                             if (data[i].timestamp == loadLast) {
-                                window.scrollTo(0, document.body.offsetHeight);
+                                document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                             }
                             if (!loaded.includes(data[i].timestamp)) {
                                 localStorage.setItem("last", data[i].timestamp);
@@ -142,31 +146,46 @@ if (localStorage.getItem("uid") == null) {
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 var text = data[i].nickname + " (" + t.getHours() + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
-                                var oldBodyHeight = document.body.offsetHeight;
+                                var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 $("#chat").append(`
                             <div class="row">
                                 <div class="col-12">
                                     <p class="` + data[i].nickname + `">` + text + `</p>
                              </div>
                             </div>`);
-                                //console.log((window.innerHeight + window.scrollY), document.body.offsetHeight);
-                                if ((window.innerHeight + window.scrollY) >= oldBodyHeight) {
-                                    window.scrollBy(0, 1000);
-                                }
+                            //console.log(document.getElementById("chat").scrollHeight);
+                            if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
+                                document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
+                            }
                             }
                         }
                     });
                     $("#message").html(`
-                <div class="col-11">
-                    <input type="text" placeholder="Chat" name="message" autocomplete="off" id="messageText" style="width: 100%;">
-                </div>
-                <div class="col-1">
-                    <input type="submit" id="messageButton" style="opacity: 0;">
-                </div>
-                `);
+                        <div class="col-7">
+                            <input type="text" placeholder="Chat" name="message" autocomplete="off" id="messageText" style="width: 99.7%;">
+                        </div>
+                            <input type="submit" id="messageButton" style="opacity: 0;position: absolute;left: -9999999px" tabindex="-1">
+                    `);
                 }
             }
 
         })
     });
+}
+
+function notifyMe(body) {
+    if (Notification.permission !== "granted")
+        Notification.requestPermission();
+    else {
+        var notification = new Notification('Lauchat', {
+            icon: '/favicon.png',
+            body: body
+        });
+
+        // notification.onclick = function () {
+        //     window.open("http://stackoverflow.com/a/13328397/1269037");
+        // };
+
+    }
+
 }
