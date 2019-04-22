@@ -22,13 +22,40 @@
             height: 100%;
         }
     </style>
+    <script>
+        $(document).ready(() => {
+            $("#editProfile").submit((event) => {
+                event.preventDefault();
+                var form = document.forms.namedItem("editProfile");
+                var data = new FormData(form);
+                data.append("uid", localStorage.getItem("uid"));
+                if ($.trim(data.get("nickname")) == "" ||
+                    $.trim(data.get("status")) == "") {
+                    $("#alert").html(`
+                                <p style="color: red;">Please fill out all of the fields.</p>
+                            `);
+                } else {
+                    $.ajax({
+                        url: "/editProfile",
+                        method: "POST",
+                        contentType: false,
+                        processData: false,
+                        data: data,
+                        success: (data) => {
+                            $("#alert").html("<p>" + data.message + "</p>");
+                        }
+                    });
+                }
+            })
+        });
+    </script>
 </head>
 
 <body style="max-width: 100%; overflow-x: hidden;">
     <div id="enterName">
 
     </div>
-    <div class="container" style="height: 100%; max-width: 100%;">
+    <div id="main" class="container" style="height: 100%; max-width: 100%;">
         <div class="row no-gutters">
             <div class="col-md-1 scrollable">
                 <div class="row no-gutters">
@@ -58,26 +85,71 @@
                 <p>These too</p>
             </div>
         </div>
-        <div class="row no-gutters" style="position: fixed;bottom:0; width: 100%">
-                <!-- <div class="col-md-1 scrollable">
+        <div class="row" style="position: fixed;bottom:0; width: 100%" id="bottomBar">
+            <!-- <div class="col-md-1 scrollable">
     
                 </div> -->
-                <div class="col-md-2 offset-md-1">
-                    <p style="display: block" onclick="document.getElementById('chat-div').scrollTo(0,1000)">Settings</p>
-                </div>
-                <div class="col-md-7 offset-md-3">
-                    <form name="chat" id="chatForm" style="position: fixed; bottom: 0; width: 100%;">
-                        <div class="row" id="message">
-                            
-                        </div>
-                    </form>
-                </div>
-                <!-- <div class="col-md-2 offset-md-10 scrollable">
+            <div class="col-md-2 offset-md-1">
+                <p style="display: block;border: 1px solid black; text-align: center;" onclick="openSettings()">Settings
+                </p>
+            </div>
+            <div class="col-md-7 offset-md-3">
+                <form name="chat" id="chatForm" style="position: fixed; bottom: 0; width: 100%;">
+                    <div class="row" id="message">
+
+                    </div>
+                </form>
+            </div>
+            <!-- <div class="col-md-2 offset-md-10 scrollable">
     
                 </div> -->
         </div>
     </div>
-
+    <div id="settings" hidden>
+        <div style="z-index:2000; width: 100vh; height: 100vh; background-color:white;">
+            <div class="container no-gutters" style="height: 100%; max-width: 100%">
+                <div class="row">
+                    <div class="col-lg-3 scrollable" id="menu" style="border-right: 1px solid black">
+                        <div class="row" onclick="" style="padding: 5%">
+                            <p style="margin: auto;" id="userSettings">User</p>
+                        </div>
+                    </div>
+                    <div class="col-lg-9 offset-lg-3 scrollable" id="settings">
+                        <form name="editProfile" id="editProfile">
+                            <div class="row" style="padding: 1%">
+                                <div class="form-group">
+                                    <label for="pfp">Profile Picture: </label>
+                                    <input type="file" name="pfp" id="pfp">
+                                </div>
+                            </div>
+                            <div class="row" style="padding: 1%">
+                                <div class="form-group">
+                                    <label for="nickname">Nickname: </label>
+                                    <input type="text" name="nickname" placeholder="Nickname" id="nickname">
+                                </div>
+                            </div>
+                            <div class="row" style="padding: 1%">
+                                <div class="form-group">
+                                    <label for="status">Status: </label>
+                                    <input type="text" name="status" placeholder="Status" id="status">
+                                </div>
+                            </div>
+                            <div class="row" style="padding: 1%">
+                                <div class="form-group">
+                                    <input type="submit" value="Save" id="submitButton">
+                                </div>
+                            </div>
+                            <div id="alert">
+                            </div>
+                        </form>
+                        <div class="row" style="padding: 1%">
+                            <button onclick="exitSettings()">Exit Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

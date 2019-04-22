@@ -8,6 +8,7 @@ const bCrypt = require('bcrypt');
 const crypto = require('crypto');
 const xss = require('xss');
 const favicon = require('serve-favicon');
+const md5File = require('md5-file');
 
 require('google-closure-library');
 goog.require("goog.html.sanitizer.HtmlSanitizer");
@@ -171,6 +172,48 @@ app.post('/api/online', (req, res) => {
 			}
 		})
 	})
+})
+
+app.post("/editProfile", (req, res) => {
+	var form = new formidable.IncomingForm();
+	var pathToDelete;
+	var userData = {};
+	form.parse(req)
+		.on("field", (name, value) => {
+			userData[name] = value;
+		})
+		.on('fileBegin', (name, file) => {
+			if (file.name != "") {
+				file.path = __dirname + "/temp/" + file.name;
+				pathToDelete = file.path;
+			}
+		})
+		.on('file', (name, file) => {
+			if (file.name != "") {
+				md5File(file.path, (err, hash) => {
+					jimp.read(file.path, (err, lenna) => {
+						if (err) throw err;
+						var path = __dirname + "/uploads/" + hash + ".jpg";
+						lenna
+							.resize(512, 512)
+							.quality(60)
+							.write(path);
+						userData["pfp"] = hash + ".jpg";
+						fs.unlinkSync(pathToDelete);
+					})
+				})
+			}
+		})
+		.on('end', () => {
+			console.log(userData);
+			mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
+				if (err) throw err;
+				var dbo = db.db("mostWanted");
+				if (userData.pfp == undefined) dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status }})
+				else dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, pfp: userData.pfp }})
+				res.send({ message: "Profile updated. Please refresh." });
+			});
+		})
 })
 
 // https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript

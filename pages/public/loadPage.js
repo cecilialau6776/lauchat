@@ -162,7 +162,7 @@ if (localStorage.getItem("uid") == null) {
                     });
                     $("#message").html(`
                         <div class="col-7">
-                            <input type="text" placeholder="Chat" name="message" autocomplete="off" id="messageText" style="width: 99.7%;">
+                            <input type="text" placeholder="Chat" name="message" autocomplete="off" id="messageText" style="width: 99.7%; outline: none">
                         </div>
                             <input type="submit" id="messageButton" style="opacity: 0;position: absolute;left: -9999999px" tabindex="-1">
                     `);
@@ -188,4 +188,16 @@ function notifyMe(body) {
 
     }
 
+}
+
+function openSettings() {
+    $("#settings").prop("hidden", false);
+    $("#main").prop("hidden", true);
+    $("#bottomBar").prop("hidden", true);
+}
+
+function exitSettings() {
+    $("#settings").prop("hidden", true);
+    $("#main").prop("hidden", false);
+    $("#bottomBar").prop("hidden", false);
 }

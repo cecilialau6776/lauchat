@@ -8,29 +8,87 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script src="/closure-library/closure/goog/base.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/loadTest.js"></script>
+    <!-- <script src="/loadTest.js"></script> -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
-    p {
-        width: 100%;
-    }
+        .scrollable {
+            position: absolute;
+            overflow: hidden;
+            overflow-y: auto;
+            height: 100%;
+        }
     </style>
+    <script>
+        $(document).ready(() => {
+            $("#editProfile").submit((event) => {
+                event.preventDefault();
+                var form = document.forms.namedItem("editProfile");
+                var data = new FormData(form);
+                data.append("uid", localStorage.getItem("uid"));
+                if ($.trim(data.get("nickname")) == "" ||
+                    $.trim(data.get("status")) == "") {
+                        $("#alert").html(`
+                            <p style="color: red;">Please fill out all of the fields.</p>
+                        `);
+                } else {
+                    $.ajax({
+                        url: "/editProfile",
+                        method: "POST",
+                        contentType: false,
+                        processData: false,
+                        data: data,
+                        success: (data) => {
+                            $("#alert").html("<p>" + data.message + "</p>");
+                        }
+                    });
+                }
+            })
+        });
+    </script>
 </head>
 
 <body>
-    <div id="enterName">
-
-    </div>
-    <div class="row">
-        <div class="container" id="chat" style="padding-bottom: 30px;">
-
+    <div class="container no-gutters" style="height: 100%; max-width: 100%">
+        <div class="row">
+            <div class="col-lg-3 scrollable" id="menu" style="border-right: 1px solid black">
+                <div class="row" onclick="" style="padding: 5%">
+                    <p style="margin: auto;" id="userSettings">User</p>
+                </div>
+            </div>
+            <div class="col-lg-9 offset-lg-3 scrollable" id="settings">
+                <form name="editProfile" id="editProfile">
+                    <div class="row" style="padding: 1%">
+                        <div class="form-group">
+                            <label for="pfp">Profile Picture: </label>
+                            <input type="file" name="pfp" id="pfp">
+                        </div>
+                    </div>
+                    <div class="row" style="padding: 1%">
+                        <div class="form-group">
+                            <label for="nickname">Nickname: </label>
+                            <input type="text" name="nickname" placeholder="Nickname" id="nickname">
+                        </div>
+                    </div>
+                    <div class="row" style="padding: 1%">
+                        <div class="form-group">
+                            <label for="status">Status: </label>
+                            <input type="text" name="status" placeholder="Status" id="status">
+                        </div>
+                    </div>
+                    <div class="row" style="padding: 1%">
+                        <div class="form-group">
+                            <input type="submit" value="Save" id="submitButton">
+                        </div>
+                    </div>
+                    <div id="alert">
+                    </div>
+                </form>
+                <div class="row" style="padding: 1%">
+                    <button onclick="editSettings()">Exit Settings</button>
+                </div>
+            </div>
         </div>
     </div>
-    <form name="chat" id="chatForm">
-        <div class="row fixed-bottom" id="message">
-
-        </div>
-    </form>
 </body>
 
 </html>
