@@ -2,6 +2,7 @@
 localStorage.removeItem("name");
 if (localStorage.getItem("uid") == null) {
     $(document).ready(() => {
+        $("#main").prop("hidden", true);
         $("#enterName").html(`
         <form method="POST" enctype="multipart/form-data" name="register">
             <input type="text" placeholder="Username" id="username" name="username" required><br>
@@ -18,7 +19,7 @@ if (localStorage.getItem("uid") == null) {
             <input type="submit" id="loginButton" name="submit" value="login">
         </form>
         <div id="loginAlert">
-        </login>`);
+        </div>`);
         $("#registerButton").click(function (event) {
             event.preventDefault();
             var data = new FormData();
@@ -97,7 +98,9 @@ if (localStorage.getItem("uid") == null) {
             data: info,
             success: function (data) {
                 if (data.uid == null) {
-                    $("#chat").html("<p>" + data + "</p>");
+                    localStorage.removeItem("uid");
+                    localStorage.removeItem("token");
+                    window.location.href = "/";
                 } else {
                     var socket = io();
                     socket.emit('login', { uid: data.username });
