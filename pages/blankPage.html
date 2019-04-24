@@ -9,7 +9,16 @@
     <script src="/closure-library/closure/goog/base.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/loadPage.js"></script>
+    <style id="nameColors">
+    </style>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script>
+    $('<link>', {
+        rel: 'stylesheet',
+        type: 'text/css',
+        href: '/api/userCss?uid=' + localStorage.getItem("uid")
+    }).appendTo('head');
+    </script>
     <style>
         p {
             width: 100%;
@@ -29,11 +38,16 @@
                 var form = document.forms.namedItem("editProfile");
                 var data = new FormData(form);
                 data.append("uid", localStorage.getItem("uid"));
+                var re = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
                 if ($.trim(data.get("nickname")) == "" ||
                     $.trim(data.get("status")) == "") {
                     $("#alert").html(`
-                                <p style="color: red;">Please fill out all of the fields.</p>
+                                <p style="color: red;">Please fill out the nickname and status.</p>
                             `);
+                } else if (re.test($.trim(data.get("colorName")))) {
+                    $("#alert").html(`
+                        <p style="color: red;">Please enter a valid hex color.</p>
+                        `);
                 } else {
                     $.ajax({
                         url: "/editProfile",
@@ -124,6 +138,14 @@
                             </div>
                             <div class="row" style="padding: 1%">
                                 <div class="form-group">
+                                    <label for="css">CSS file: </label>
+                                    <input type="file" name="css" id="css">
+                                    <input type="checkbox" name="removeCss">
+                                    <label for="removeCss">Delete your css file</label>
+                                </div>
+                            </div>
+                            <div class="row" style="padding: 1%">
+                                <div class="form-group">
                                     <label for="nickname">Nickname: </label>
                                     <input type="text" name="nickname" placeholder="Nickname" id="nickname">
                                 </div>
@@ -132,6 +154,12 @@
                                 <div class="form-group">
                                     <label for="status">Status: </label>
                                     <input type="text" name="status" placeholder="Status" id="status">
+                                </div>
+                            </div>
+                            <div class="row" style="padding: 1%">
+                                <div class="form-group">
+                                    <label for="nameColor">Name Color: </label>
+                                    <input type="text" name="nameColor" placeholder="Name Color in hex" id="nameColor" value="#">
                                 </div>
                             </div>
                             <div class="row" style="padding: 1%">

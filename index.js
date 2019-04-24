@@ -9,6 +9,8 @@ const crypto = require('crypto');
 const xss = require('xss');
 const favicon = require('serve-favicon');
 const md5File = require('md5-file');
+const jimp = require('jimp');
+const fs = require('fs');
 
 require('google-closure-library');
 goog.require("goog.html.sanitizer.HtmlSanitizer");
@@ -69,7 +71,10 @@ io.on('connection', (socket) => {
 							// io.emit("debug", [userRef, chat]);
 							// console.log(userRef[chat[i].uid])
 							// console.log(i, chat[i].uid);
-							chat[i].nickname = userRef[chat[i].uid].nickname
+							chat[i].nickname = userRef[chat[i].uid].nickname;
+							chat[i].username = userRef[chat[i].uid].username;
+							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+							delete chat[i].uid;
 						}
 						io.emit("sendChatMessage", chat);
 					})
@@ -95,8 +100,10 @@ app.get('/testing', (req, res) => {
 app.get('/loadPage.js', (req, res) => {
 	res.sendFile(__dirname + "/pages/public/loadPage.js");
 });
-app.get('/loadTest.js', (req, res) => {
-	res.sendFile(__dirname + "/pages/public/loadTest.js");
+app.get('/api/userCss', (req, res) => {
+	if (req.query.uid != null) {
+		res.sendFile(__dirname + "/uploads/css/" + req.query.uid + ".css");
+	}
 });
 
 app.get('/favicon.png', (eq, res) => {
@@ -176,44 +183,54 @@ app.post('/api/online', (req, res) => {
 
 app.post("/editProfile", (req, res) => {
 	var form = new formidable.IncomingForm();
-	var pathToDelete;
 	var userData = {};
-	form.parse(req)
-		.on("field", (name, value) => {
-			userData[name] = value;
-		})
-		.on('fileBegin', (name, file) => {
-			if (file.name != "") {
-				file.path = __dirname + "/temp/" + file.name;
-				pathToDelete = file.path;
-			}
-		})
-		.on('file', (name, file) => {
-			if (file.name != "") {
-				md5File(file.path, (err, hash) => {
-					jimp.read(file.path, (err, lenna) => {
-						if (err) throw err;
-						var path = __dirname + "/uploads/" + hash + ".jpg";
-						lenna
-							.resize(512, 512)
-							.quality(60)
-							.write(path);
-						userData["pfp"] = hash + ".jpg";
-						fs.unlinkSync(pathToDelete);
-					})
-				})
-			}
-		})
-		.on('end', () => {
-			console.log(userData);
-			mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
-				if (err) throw err;
-				var dbo = db.db("mostWanted");
-				if (userData.pfp == undefined) dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status }})
-				else dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, pfp: userData.pfp }})
+	mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
+		if (err) throw err;
+		var dbo = db.db("mostWanted");
+		var cssPath = "";
+		dbo.collection("users").find().toArray().then((result) => {
+			form.parse(req)
+			.on("field", (name, value) => {
+				userData[name] = value;
+			})
+			.on('fileBegin', (name, file) => {
+				if (file.name != "") {
+					file.path = __dirname + "/temp/" + file.name;
+					if (name == "css") {
+						cssPath = file.path;
+					}
+				}
+			})
+			.on('file', (name, file) => {
+				console.log(name);
+				if (file.name != "") {
+					if (name == "pfp") {
+						md5File(file.path, (err, hash) => {
+							jimp.read(file.path, (err, lenna) => {
+								if (err) throw err;
+								var path = __dirname + "/uploads/" + hash + ".jpg";
+								lenna
+									.resize(512, 512)
+									.quality(60)
+									.write(path);
+								userData["pfp"] = hash + ".jpg";
+								fs.unlinkSync(file.path);
+							})
+						})
+					}
+				}
+			})
+			.on('end', () => {
+				console.log(userData);
+				if (cssPath != "") fs.renameSync(cssPath, __dirname + "/uploads/css/" + userData.uid + ".css");
+				if (userData.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + userData.uid + ".css");
+				userData.nameColor = userData.nameColor == undefined ? "#000000" : userData.nameColor;
+				if (userData.pfp == undefined) dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, nameColor: userData.nameColor }})
+				else dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, pfp: userData.pfp, nameColor: userData.nameColor }})
 				res.send({ message: "Profile updated. Please refresh." });
-			});
+			})
 		})
+	});
 })
 
 // https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript

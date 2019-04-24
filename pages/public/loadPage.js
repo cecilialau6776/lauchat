@@ -1,5 +1,4 @@
 //mongo command to clear all msgs: db.messages.deleteMany({ id: { $gt: 0 } })
-localStorage.removeItem("name");
 if (localStorage.getItem("uid") == null) {
     $(document).ready(() => {
         $("#main").prop("hidden", true);
@@ -105,6 +104,7 @@ if (localStorage.getItem("uid") == null) {
                     var socket = io();
                     socket.emit('login', { uid: data.username });
                     var loaded = [];
+                    var nameColorsLoaded = [];
                     var loadLast = localStorage.getItem("last");
                     var builder = new goog.html.sanitizer.HtmlSanitizer.Builder();
                     builder.onlyAllowTags(["IMG"]);
@@ -148,14 +148,16 @@ if (localStorage.getItem("uid") == null) {
                                 //console.log(data[i].message);
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
-                                var text = data[i].nickname + " (" + t.getHours() + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
+                                var text = " (" + t.getHours() + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 $("#chat").append(`
-                            <div class="row">
-                                <div class="col-12">
-                                    <p class="` + data[i].nickname + `">` + text + `</p>
-                             </div>
+                            <div class="row message">
+                                    <span class="` + data[i].username + `">` + data[i].nickname + "</span><p>" + text + `</p>
                             </div>`);
+                            if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
+                                $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
+                                nameColorsLoaded.push(data[i].username);
+                            }
                             //console.log(document.getElementById("chat").scrollHeight);
                             if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
                                 document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
