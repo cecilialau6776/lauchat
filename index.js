@@ -294,4 +294,5 @@ async function login(username, password) {
 	});
 }
 // 3002 is used for development
-http.listen(3002, () => console.log('App listening on port 3002!'));
+const port = 3002;
+http.listen(port, () => console.log('App listening on port 3002!'));

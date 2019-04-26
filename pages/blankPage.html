@@ -129,10 +129,16 @@
                 <div class="row">
                     <div class="col-lg-3 scrollable" id="menu" style="border-right: 1px solid black">
                         <div class="row" onclick="" style="padding: 5%">
-                            <p style="margin: auto;" id="userSettings">User</p>
+                            <p style="margin: auto;" id="userSettingsButton" onclick="setMenu('user')">User</p>
+                        </div>
+                        <div class="row" onclick="" style="padding: 5%">
+                            <p style="margin: auto;" id="notifSettingsButton" onclick="setMenu('notif')">Notifications</p>
+                        </div>
+                        <div class="row" style="padding: 1%">
+                            <button onclick="exitSettings()">Exit Settings</button>
                         </div>
                     </div>
-                    <div class="col-lg-9 offset-lg-3 scrollable" id="settings">
+                    <div class="col-lg-9 offset-lg-3 scrollable" id="userSettings">
                         <form name="editProfile" id="editProfile">
                             <div class="row" style="padding: 1%">
                                 <div class="form-group">
@@ -174,8 +180,30 @@
                             <div id="alert">
                             </div>
                         </form>
+                    </div>
+                    <div class="col-lg-9 offset-lg-3 scrollable" id="notifSettings" hidden>
+                        <div class="row" stlye="padding: 1%">
+                            <p>Choose when to get notified:</p>
+                        </div>
                         <div class="row" style="padding: 1%">
-                            <button onclick="exitSettings()">Exit Settings</button>
+                            <div class="form-group">
+                                <input type="radio" name="timing" id="notif0" onclick="localStorage.setItem('notif', 0);">
+                                <label for="timing">Never</label>
+                            </div>
+                        </div>
+                        <div class="row" style="padding: 1%">
+                            <div class="form-group">
+                                <input type="radio" name="timing" id="notif1" onclick="localStorage.setItem('notif', 1);">
+                                <label for="timing">When @tagged</label>
+                            </div>
+                        </div>
+                        <div class="row" style="padding: 1%">
+                            <div class="form-group">
+                                <input type="radio" name="timing" id="notif2" onclick="localStorage.setItem('notif', 2);">
+                                <label for="timing">Every Message</label>
+                            </div>
+                        </div>
+                        <div id="alert">
                         </div>
                     </div>
                 </div>

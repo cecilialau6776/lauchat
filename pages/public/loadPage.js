@@ -1,4 +1,4 @@
-//mongo command to clear all msgs: db.messages.deleteMany({ id: { $gt: 0 } })
+if (localStorage.getItem("notif") == null) localStorage.setItem("notif", 0);
 if (localStorage.getItem("uid") == null) {
     $(document).ready(() => {
         $("#main").prop("hidden", true);
@@ -90,6 +90,7 @@ if (localStorage.getItem("uid") == null) {
     if (!Notification) {alert('Desktop notifications not available in your browser. Try Chromium.');}
     if (Notification.permission !== "granted") {Notification.requestPermission();}
     $(document).ready(function () {
+        document.getElementById("notif" + localStorage.getItem('notif')).checked = true;
         var info = { uid: localStorage.getItem("uid"), token: localStorage.getItem("token") };
         $.ajax({
             method: "POST",
@@ -127,9 +128,11 @@ if (localStorage.getItem("uid") == null) {
                         console.log(data);
                     }))
                     socket.on('sendChatMessage', (msgData) => {
-                        if (msgData.length > 0 && !document.hasFocus() && localStorage.getItem("last") != 0 && localStorage.getItem("notifsOn") == "true") {
-                            if (msgData.length > 1) {notifyMe(msgData.length + " new messages!");}
-                            else { notifyMe(msgData[0].nickname + ": " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(msgData[0].message))) }
+                        if (msgData.length > 0 && document.visibilityState != "visible" && localStorage.getItem("last") != 0) {
+                            if (localStorage.getItem("notif") == 2) {
+                                if (msgData.length > 1) {notifyMe(msgData.length + " new messages!");}
+                                else { notifyMe(msgData[0].nickname + ": " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(msgData[0].message))) }
+                            }
                         }
                         console.log(msgData);
                         //console.log(msgData);
@@ -162,7 +165,7 @@ if (localStorage.getItem("uid") == null) {
                                 }
                                 console.log("after url", i);
                                 //message = message.includes("*") || message.includes("~~") ? parse(parse(parse(message, "<strong>", "</strong>", /\*{2}[^\*]{0,}\*{2}/), "<em>", "</em>", /\*{1}[^\*]{0,}\*{1}/), "<s>", "</s>", /~{2}[^~]{0,}~{2}/) : message;
-                                var text = " (" + (t.getHours() - 4) + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + message;
+                                var text = " (" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + message;
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 $("#chat").append(`
                             <div class="row message">
@@ -284,4 +287,13 @@ function urlParse(inputString, re) {
     } else {
         return (inputString);
     }
+}
+
+const menuNames = ["userSettings", "notifSettings"]
+
+function setMenu(name) {
+    for (var i = 0; i < menuNames.length; i++) {
+        $("#" + menuNames[i]).prop("hidden", true);
+    }
+    $("#" + name + "Settings").prop("hidden", false);
 }
