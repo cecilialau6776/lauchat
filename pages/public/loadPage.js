@@ -145,14 +145,28 @@ if (localStorage.getItem("uid") == null) {
                             if (!loaded.includes(data[i].timestamp)) {
                                 localStorage.setItem("last", data[i].timestamp);
                                 loaded.push(data[i].timestamp);
-                                //console.log(data[i].message);
+                                console.log(i, data[i].message);
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
-                                var text = " (" + t.getHours() + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
+                                message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
+                                var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,24}(\/[\w-.~!$&'()*+,;=]{0,}){0,}/;
+                                if (message.includes("*") || message.includes("~~")) {
+                                    message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
+                                    message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
+                                    message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
+                                }
+                                console.log("decorationParsed");
+                                if (re.test(message)) {
+                                    message = urlParse(message, re);
+                                    console.log(message, i);
+                                }
+                                console.log("after url", i);
+                                //message = message.includes("*") || message.includes("~~") ? parse(parse(parse(message, "<strong>", "</strong>", /\*{2}[^\*]{0,}\*{2}/), "<em>", "</em>", /\*{1}[^\*]{0,}\*{1}/), "<s>", "</s>", /~{2}[^~]{0,}~{2}/) : message;
+                                var text = " (" + (t.getHours() - 4) + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + message;
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 $("#chat").append(`
                             <div class="row message">
-                                    <span class="` + data[i].username + `">` + data[i].nickname + "</span><p>" + text + `</p>
+                                    <span class="` + data[i].username + ` username">` + data[i].nickname + "</span><p>" + text + `</p>
                             </div>`);
                             if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
                                 $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
@@ -205,4 +219,69 @@ function exitSettings() {
     $("#settings").prop("hidden", true);
     $("#main").prop("hidden", false);
     $("#bottomBar").prop("hidden", false);
+}
+
+function parse(inputString, openTag, closeTag, regexString, seperator) {
+    var re = new RegExp(regexString);
+    var escapeRe = new RegExp("\\\\" + regexString);
+	var string = inputString;
+    var decorationList = string.match(re);
+    var escapeList = string.match(escapeRe);
+	var toAppend = "";
+    var decorationCounter = 0;
+    var escapeCounter = 0;
+    var outString = "";
+    if (decorationList != null) {
+        for (var i = 0; i < string.length; i++) {
+            if (escapeList != null && string.indexOf(escapeList[escapeCounter], i) == i) {
+                outString += toAppend + escapeList[escapeCounter].substr(1, escapeList[escapeCounter].length - 1);
+                toAppend = "";
+                i += escapeList[escapeCounter].length - 1;
+                decorationCounter++;
+                escapeCounter++;
+            } else if (string.indexOf(decorationList[decorationCounter], i) == i) {
+                outString += toAppend + openTag;
+                toAppend = "";
+                outString += decorationList[decorationCounter].split(seperator)[1] + closeTag;
+                i += decorationList[decorationCounter].length - 1;
+                decorationCounter++;
+            } else if (i == string.length - 1) {
+                outString += toAppend + string.charAt(i);
+            } else {
+                toAppend += string.charAt(i);
+            }
+        }
+        return (outString);
+    } else {
+        return (inputString);
+    }
+}
+
+function urlParse(inputString, re) {
+    //var re = new RegExp(regexString);
+	var string = inputString;
+    var decorationList = string.match(re);
+	var toAppend = "";
+    var decorationCounter = 0;
+    var outString = "";
+    if (decorationList != null) {
+        for (var i = 0; i < string.length; i++) {
+            if (string.indexOf(decorationList[decorationCounter], i) == i) {
+                console.log("url", decorationList);
+                var url = !(decorationList[decorationCounter].includes("http://") || decorationList[decorationCounter].includes("https://")) ? "http://" + decorationList[decorationCounter] : decorationList[decorationCounter];
+                outString += toAppend + "<a href='" + url + "'>" + decorationList[decorationCounter] + "</a>";
+                toAppend = "";
+                //outString += decorationList[decorationCounter] + "</a>";
+                i += decorationList[decorationCounter].length - 1;
+                decorationCounter++;
+            } else if (i == string.length - 1) {
+                outString += toAppend + string.charAt(i);
+            } else {
+                toAppend += string.charAt(i);
+            }
+        }
+        return (outString);
+    } else {
+        return (inputString);
+    }
 }
