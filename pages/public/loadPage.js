@@ -27,7 +27,7 @@ if (localStorage.getItem("uid") == null) {
             if (data.get("username").includes(" ") || data.get("password").includes(" ")) {
                 $("#alert").html(`
                 <p>Invalid username/password: No spaces allowed.</p>`);
-            } else if (data.get("username") == "" || data.get("passowrd") == "") {
+            } else if (data.get("username") == "" || data.get("password") == "") {
                 $("#alert").html(`
                 <p>Invalid username/password: Neither can be blank.</p>`);
             } else {
@@ -106,6 +106,7 @@ if (localStorage.getItem("uid") == null) {
                     socket.emit('login', { uid: data.username });
                     var loaded = [];
                     var nameColorsLoaded = [];
+                    var sending = [];
                     var loadLast = localStorage.getItem("last");
                     var builder = new goog.html.sanitizer.HtmlSanitizer.Builder();
                     builder.onlyAllowTags(["IMG"]);
@@ -118,7 +119,33 @@ if (localStorage.getItem("uid") == null) {
                         event.preventDefault();
                         var sendData = { uid: localStorage.getItem("uid"), message: $("#messageText").val() }
                         if ($.trim(sendData.message) != '') socket.emit("chat message", sendData);
+                        sending.push(sendData.message);
+                        var t = new Date();
+                        var message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(sendData.message));
+                        var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,24}(\/[\w-.~!$&'()*+,;=]{0,}){0,}/;
+                        if (message.includes("*") || message.includes("~~")) {
+                            message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
+                            message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
+                            message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
+                        }
+                        if (re.test(message)) {
+                            message = urlParse(message, re);
+                            console.log(message, i);
+                        }
                         $("#messageText").val("");
+                        var text = " (" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + message;
+                        var oldHeight = document.getElementById("chat-div").scrollHeight;
+                        $("#chat").append(`
+                        <div class="row message">
+                            <span class="` + data[i].username + ` username">` + data[i].nickname + "</span><p>" + text + `</p>
+                        </div>`);
+                        if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
+                            $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
+                            nameColorsLoaded.push(data[i].username);
+                        }
+                        if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
+                            document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
+                        }
                     })
                     socket.on('update', () => {
                         //console.log("updatePing");
@@ -145,6 +172,9 @@ if (localStorage.getItem("uid") == null) {
                             if (data[i].timestamp == loadLast) {
                                 document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                             }
+                            if (data[i].username) {
+
+                            }
                             if (!loaded.includes(data[i].timestamp)) {
                                 localStorage.setItem("last", data[i].timestamp);
                                 loaded.push(data[i].timestamp);
@@ -152,33 +182,36 @@ if (localStorage.getItem("uid") == null) {
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
-                                var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,24}(\/[\w-.~!$&'()*+,;=]{0,}){0,}/;
+                                var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
                                 if (message.includes("*") || message.includes("~~")) {
                                     message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
                                     message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
                                     message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
                                 }
-                                console.log("decorationParsed");
                                 if (re.test(message)) {
                                     message = urlParse(message, re);
                                     console.log(message, i);
                                 }
-                                console.log("after url", i);
-                                //message = message.includes("*") || message.includes("~~") ? parse(parse(parse(message, "<strong>", "</strong>", /\*{2}[^\*]{0,}\*{2}/), "<em>", "</em>", /\*{1}[^\*]{0,}\*{1}/), "<s>", "</s>", /~{2}[^~]{0,}~{2}/) : message;
-                                var text = " (" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + "): " + message;
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 $("#chat").append(`
-                            <div class="row message">
-                                    <span class="` + data[i].username + ` username">` + data[i].nickname + "</span><p>" + text + `</p>
-                            </div>`);
-                            if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
-                                $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
-                                nameColorsLoaded.push(data[i].username);
-                            }
-                            //console.log(document.getElementById("chat").scrollHeight);
-                            if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
-                                document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
-                            }
+                                <div class="row message ` + data[i].username + `-message">
+                                    <div style="width:48px">
+                                        <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data[i].pfp + `">
+                                    </div>
+                                    &nbsp;
+                                    <div>
+                                        <span class="` + data[i].username + ` username">` + data[i].nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'>" + " (" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + ")" + `</span>
+                                        <p>` + message + `</p>
+                                    </div>
+                                </div>`
+                                );
+                                if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
+                                    $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
+                                    nameColorsLoaded.push(data[i].username);
+                                }
+                                if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
+                                    document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
+                                }
                             }
                         }
                     });

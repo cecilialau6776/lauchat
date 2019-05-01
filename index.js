@@ -74,6 +74,7 @@ io.on('connection', (socket) => {
 							chat[i].nickname = userRef[chat[i].uid].nickname;
 							chat[i].username = userRef[chat[i].uid].username;
 							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+							chat[i].pfp = userRef[chat[i].uid].pfp;
 							delete chat[i].uid;
 						}
 						io.emit("sendChatMessage", chat);
@@ -105,6 +106,13 @@ app.get('/api/userCss', (req, res) => {
 		res.sendFile(__dirname + "/uploads/css/" + req.query.uid + ".css");
 	}
 });
+app.get('/api/userPfp', (req, res) => {
+	if (req.query.pfp == "null") {
+		res.sendFile(__dirname + '/uploads/pfps/default.png');
+	} else {
+		res.sendFile(__dirname + '/uploads/pfps/' + req.query.pfp);
+	}
+})
 
 app.get('/favicon.png', (eq, res) => {
 	res.sendFile(__dirname + "/pages/public/favicon.png");
@@ -183,12 +191,37 @@ app.post('/api/online', (req, res) => {
 
 app.post("/editProfile", (req, res) => {
 	var form = new formidable.IncomingForm();
-	var userData = {};
 	mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
 		if (err) throw err;
 		var dbo = db.db("mostWanted");
-		var cssPath = "";
 		dbo.collection("users").find().toArray().then((result) => {
+			form.parse(req, (err, fields, files) => {
+				if (err) throw err;
+				if (files.pfp != undefined) {
+					md5File(files.pfp.path, (err, hash) => {
+						if (err) throw err;
+						fields.pfp = hash + ".jpg";
+						jimp.read(files.pfp.path, (err, lenna) => {
+							if (err) throw err;
+							var path = __dirname + "/uploads/pfps/" + hash + ".jpg";
+							lenna
+								.resize(512, 512)
+								.quality(60)
+								.write(path);
+							fs.unlinkSync(files.pfp.path);
+							console.log(fields);
+							if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
+							fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
+							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: { nickname: fields.nickname, status: fields.status, pfp: fields.pfp, nameColor: fields.nameColor }})
+							res.send({ message: "Profile updated. Please refresh." });
+						})
+					})
+				}
+				if (files.css != undefined) {
+					fs.renameSync(files.css.path, __dirname + "/uploads/css/" + fields.uid + ".css");
+				}
+			})
+			/*
 			form.parse(req)
 			.on("field", (name, value) => {
 				userData[name] = value;
@@ -202,33 +235,41 @@ app.post("/editProfile", (req, res) => {
 				}
 			})
 			.on('file', (name, file) => {
-				console.log(name);
 				if (file.name != "") {
 					if (name == "pfp") {
 						md5File(file.path, (err, hash) => {
+							userData["pfp"] = hash + ".jpg";
 							jimp.read(file.path, (err, lenna) => {
 								if (err) throw err;
-								var path = __dirname + "/uploads/" + hash + ".jpg";
+								var path = __dirname + "/uploads/pfps/" + hash + ".jpg";
 								lenna
 									.resize(512, 512)
 									.quality(60)
 									.write(path);
-								userData["pfp"] = hash + ".jpg";
 								fs.unlinkSync(file.path);
 							})
+							form.on('end', () => {
+								console.log(userData);
+								if (cssPath != "") fs.renameSync(cssPath, __dirname + "/uploads/css/" + userData.uid + ".css");
+								if (userData.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + userData.uid + ".css");
+								userData.nameColor = userData.nameColor == undefined ? "#000000" : userData.nameColor;
+								dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, pfp: userData.pfp, nameColor: userData.nameColor }})
+								res.send({ message: "Profile updated. Please refresh." });
+							})
+						})
+					} else {
+						form.on('end', () => {
+							console.log(userData);
+							if (cssPath != "") fs.renameSync(cssPath, __dirname + "/uploads/css/" + userData.uid + ".css");
+							if (userData.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + userData.uid + ".css");
+							userData.nameColor = userData.nameColor == undefined ? "#000000" : userData.nameColor;
+							dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, nameColor: userData.nameColor }})
+							res.send({ message: "Profile updated. Please refresh." });
 						})
 					}
 				}
 			})
-			.on('end', () => {
-				console.log(userData);
-				if (cssPath != "") fs.renameSync(cssPath, __dirname + "/uploads/css/" + userData.uid + ".css");
-				if (userData.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + userData.uid + ".css");
-				userData.nameColor = userData.nameColor == undefined ? "#000000" : userData.nameColor;
-				if (userData.pfp == undefined) dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, nameColor: userData.nameColor }})
-				else dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, pfp: userData.pfp, nameColor: userData.nameColor }})
-				res.send({ message: "Profile updated. Please refresh." });
-			})
+			*/
 		})
 	});
 })
