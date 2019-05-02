@@ -107,7 +107,7 @@ app.get('/api/userCss', (req, res) => {
 	}
 });
 app.get('/api/userPfp', (req, res) => {
-	if (req.query.pfp == "null") {
+	if (req.query.pfp == "null" || req.query.pfp == "undefined") {
 		res.sendFile(__dirname + '/uploads/pfps/default.png');
 	} else {
 		res.sendFile(__dirname + '/uploads/pfps/' + req.query.pfp);
@@ -166,7 +166,6 @@ app.post('/api/login', (req, res) => {
 			pw = userData.password;
 			userData.username = userData.username.trim();
 			userData.password = userData.password.trim();
-			// userData["nickname"] = userData.username;
 			login(userData.username, pw).then((data) => {
 				console.log(data);
 				res.send(data);
@@ -213,7 +212,7 @@ app.post("/editProfile", (req, res) => {
 							if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
 							fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
 							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: { nickname: fields.nickname, status: fields.status, pfp: fields.pfp, nameColor: fields.nameColor }})
-							res.send({ message: "Profile updated. Please refresh." });
+							res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
 						})
 					})
 				}
@@ -221,55 +220,6 @@ app.post("/editProfile", (req, res) => {
 					fs.renameSync(files.css.path, __dirname + "/uploads/css/" + fields.uid + ".css");
 				}
 			})
-			/*
-			form.parse(req)
-			.on("field", (name, value) => {
-				userData[name] = value;
-			})
-			.on('fileBegin', (name, file) => {
-				if (file.name != "") {
-					file.path = __dirname + "/temp/" + file.name;
-					if (name == "css") {
-						cssPath = file.path;
-					}
-				}
-			})
-			.on('file', (name, file) => {
-				if (file.name != "") {
-					if (name == "pfp") {
-						md5File(file.path, (err, hash) => {
-							userData["pfp"] = hash + ".jpg";
-							jimp.read(file.path, (err, lenna) => {
-								if (err) throw err;
-								var path = __dirname + "/uploads/pfps/" + hash + ".jpg";
-								lenna
-									.resize(512, 512)
-									.quality(60)
-									.write(path);
-								fs.unlinkSync(file.path);
-							})
-							form.on('end', () => {
-								console.log(userData);
-								if (cssPath != "") fs.renameSync(cssPath, __dirname + "/uploads/css/" + userData.uid + ".css");
-								if (userData.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + userData.uid + ".css");
-								userData.nameColor = userData.nameColor == undefined ? "#000000" : userData.nameColor;
-								dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, pfp: userData.pfp, nameColor: userData.nameColor }})
-								res.send({ message: "Profile updated. Please refresh." });
-							})
-						})
-					} else {
-						form.on('end', () => {
-							console.log(userData);
-							if (cssPath != "") fs.renameSync(cssPath, __dirname + "/uploads/css/" + userData.uid + ".css");
-							if (userData.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + userData.uid + ".css");
-							userData.nameColor = userData.nameColor == undefined ? "#000000" : userData.nameColor;
-							dbo.collection("users").updateOne({ uid: userData.uid }, { $set: { nickname: userData.nickname, status: userData.status, nameColor: userData.nameColor }})
-							res.send({ message: "Profile updated. Please refresh." });
-						})
-					}
-				}
-			})
-			*/
 		})
 	});
 })
@@ -325,7 +275,7 @@ async function login(username, password) {
 					if (result) {
 						var token = crypto.randomBytes(32).toString('hex');
 						dbo.collection("users").updateOne({ _id: json["_id"] }, { $set: { token: token } });
-						resolve({ status: "success", uid: json["uid"], token: token });
+						resolve({ status: "success", uid: json["uid"], token: token, username: json.username, nickname: json.nickname, pfp: json.pfp});
 					} else {
 						resolve({ status: "failure", message: "Incorrect username or password" });
 					}

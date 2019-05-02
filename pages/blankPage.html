@@ -61,6 +61,8 @@
                         data: data,
                         success: (data) => {
                             $("#alert").html("<p>" + data.message + "</p>");
+                            localStorage.setItem("nickname", data.nickname);
+                            localStorage.setItem("pfp", data.pfp);
                         }
                     });
                 }
