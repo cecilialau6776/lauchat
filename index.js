@@ -284,6 +284,7 @@ async function login(username, password) {
 		})
 	});
 }
-// 3002 is used for development
-const port = 3002;
-http.listen(port, () => console.log('App listening on port 3002!'));
+fs.readFile(__dirname + "/port.txt", { encoding: 'utf-8' }, (err, port) => {
+	if (err) throw err;
+	http.listen(port, () => console.log('App listening on port ' + port + '!'));
+})
