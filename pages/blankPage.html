@@ -136,6 +136,9 @@
                         <div class="row" onclick="" style="padding: 5%">
                             <p style="margin: auto;" id="notifSettingsButton" onclick="setMenu('notif')">Notifications</p>
                         </div>
+                        <div class="row" onclick="" style="padding: 5%">
+                            <p style="margin: auto;" id="notifSettingsButton" onclick="setMenu('misc')">Miscellaneous</p>
+                        </div>
                         <div class="row" style="padding: 1%">
                             <button onclick="exitSettings()">Exit Settings</button>
                         </div>
@@ -204,6 +207,13 @@
                                 <input type="radio" name="timing" id="notif2" onclick="localStorage.setItem('notif', 2);">
                                 <label for="timing">Every Message</label>
                             </div>
+                        </div>
+                        <div id="alert">
+                        </div>
+                    </div>
+                    <div class="col-lg-9 offset-lg-3 scrollable" id="miscSettings" hidden>
+                        <div class="row" stlye="padding: 1%">
+                            <input type="button" value="Reload Lauchat with all messages" onclick="localStorage.setItem('loadAll', true); window.location.href='/'">
                         </div>
                         <div id="alert">
                         </div>

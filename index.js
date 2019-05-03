@@ -29,6 +29,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 //app.use("/public", express.static("pages/public"));
 var userList = []
+
 io.on('connection', (socket) => {
 	console.log("A user connected!");
 	socket.on('disconnect', () => {
@@ -36,6 +37,40 @@ io.on('connection', (socket) => {
 	})
 	socket.on('login', (userData) => {
 		userList.push(userData.username);
+		console.log("socket login", userData);
+		if (!userData.loadAll) {
+			mongoClient.connect(mongoUrl,  {useNewUrlParser: true }, (err, db) => {
+				if (err) throw err;
+				var dbo = db.db("mostWanted");
+				dbo.collection("chatMessages").find().sort({ _id: -1 }).limit(100).toArray().then((result) => {
+					var uidList = []
+					for (var i = 0; i < result.length; i++) {
+						uidList.push({ uid: result[i].uid });
+					}
+					uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
+					dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
+						var chat = Array.from(result).reverse();
+						var userRef = {};
+						for (var i = 0; i < users.length; i++) {
+							userRef[users[i].uid] = users[i];
+							// console.log(users[i].uid);
+						}
+						userRef = JSON.parse(JSON.stringify(userRef));
+						for (var i = 0; i < chat.length; i++) {
+							// io.emit("debug", [userRef, chat]);
+							// console.log(userRef[chat[i].uid])
+							// console.log(i, chat[i].uid);
+							chat[i].nickname = userRef[chat[i].uid].nickname;
+							chat[i].username = userRef[chat[i].uid].username;
+							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+							chat[i].pfp = userRef[chat[i].uid].pfp;
+							delete chat[i].uid;
+						}
+						io.emit("sendChatMessage", chat);
+					})
+				})
+			});
+		}
 	})
 	socket.on('chat message', (data) => {
 		data["timestamp"] = new Date().getTime();

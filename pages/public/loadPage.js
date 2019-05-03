@@ -116,7 +116,12 @@ if (localStorage.getItem("uid") == null) {
                 } else {
 
                     var socket = io();
-                    socket.emit('login', { uid: data.username });
+                    socket.emit('login', { username: data.username, loadAll: localStorage.getItem('loadAll') });
+                    if (localStorage.getItem('loadAll')) {
+                        localStorage.setItem("last", 0);
+                        socket.emit("getUpdate", 0);
+                        localStorage.setItem('loadAll', false);
+                    }
                     var loaded = [];
                     var nameColorsLoaded = [];
                     var sending = [];
@@ -126,9 +131,6 @@ if (localStorage.getItem("uid") == null) {
                     var builder = new goog.html.sanitizer.HtmlSanitizer.Builder();
                     builder.onlyAllowTags(["IMG"]);
                     var sanitizer = new goog.html.sanitizer.HtmlSanitizer(builder);
-                    localStorage.setItem("last", 0);
-                    socket.emit("getUpdate", 0);
-
 
                     $("#chatForm").submit((event) => {
                         event.preventDefault();
@@ -182,7 +184,6 @@ if (localStorage.getItem("uid") == null) {
                                 document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                             }
                             if (data[i].username == localStorage.getItem('username') && sending.includes(data[i].id)) {
-                                console.log("self-msg");
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 $("#" + localStorage.getItem("username") + data[i].id).text("(" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + ")");
@@ -190,12 +191,10 @@ if (localStorage.getItem("uid") == null) {
                                 localStorage.setItem("last", data[i].timestamp);
                                 sent.push(sending.splice(sending.indexOf(data[i].id), 1));
                             } else if (!loaded.includes(data[i].timestamp)) {
-                                console.log("not-self-msg");
                                 sent.push(data[i].id);
                                 if (data[i].username == localStorage.getItem("username") && !sending.includes(data[i].id) && !sent.includes(data[i].id)) userMsgId++;
                                 localStorage.setItem("last", data[i].timestamp);
                                 loaded.push(data[i].timestamp);
-                                console.log(i, data[i].message);
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
@@ -207,7 +206,6 @@ if (localStorage.getItem("uid") == null) {
                                 }
                                 if (re.test(message)) {
                                     message = urlParse(message, re);
-                                    console.log(message, i);
                                 }
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 $("#chat").append(`
