@@ -28,21 +28,27 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 //app.use("/public", express.static("pages/public"));
-var userList = []
+var userList = [];
+var connectedUsers = 0;
 
 io.on('connection', (socket) => {
+	connectedUsers++;
 	console.log("A user connected!");
 	socket.on('disconnect', () => {
-		console.log("A user disconnected...");
+		connectedUsers--;
+		io.emit("onlinePing");
+		userList = [];
 	})
+
 	socket.on('login', (userData) => {
 		userList.push(userData.username);
-		console.log("socket login", userData);
-		if (!userData.loadAll) {
+		console.log("userList", userList);
+		io.emit('userList', userList);
+		if (userData.loadAll != true) {
 			mongoClient.connect(mongoUrl,  {useNewUrlParser: true }, (err, db) => {
 				if (err) throw err;
 				var dbo = db.db("mostWanted");
-				dbo.collection("chatMessages").find().sort({ _id: -1 }).limit(100).toArray().then((result) => {
+				dbo.collection("chatMessages").find().sort({ timestamp: -1 }).limit(100).toArray().then((result) => {
 					var uidList = []
 					for (var i = 0; i < result.length; i++) {
 						uidList.push({ uid: result[i].uid });
@@ -72,6 +78,7 @@ io.on('connection', (socket) => {
 			});
 		}
 	})
+
 	socket.on('chat message', (data) => {
 		data["timestamp"] = new Date().getTime();
 
@@ -83,6 +90,7 @@ io.on('connection', (socket) => {
 		io.emit('update');
 		console.log(data);
 	})
+
 	socket.on('getUpdate', (timestamp) => {
 		mongoClient.connect(mongoUrl, (err, db) => {
 			if (err) throw err;
@@ -118,11 +126,16 @@ io.on('connection', (socket) => {
 			});
 		});
 	})
+
+	socket.on('online', (nickname) => {
+		userList.push(nickname);
+		if (userList.length == connectedUsers) {
+			io.emit('userList', userList);
+			console.log(userList);
+		}
+	});
 	setInterval(() => {
 		io.emit("update");
-		io.emit("checkOnline");
-		// console.log(userList);
-		userList = [];
 	}, 10000);
 })
 

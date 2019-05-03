@@ -62,7 +62,6 @@ if (localStorage.getItem("uid") == null) {
             var data = new FormData();
             data.append("username", $.trim($("#loginUsername").val()));
             data.append("password", $.trim($("#loginPassword").val()));
-            console.log(data.get("username"), data.get("password"));
             if (data.get("username").includes(" ") || data.get("password").includes(" ")) {
                 $("#alert").html(`
                 <p>Invalid username/password: No spaces allowed.</p>`);
@@ -117,7 +116,7 @@ if (localStorage.getItem("uid") == null) {
 
                     var socket = io();
                     socket.emit('login', { username: data.username, loadAll: localStorage.getItem('loadAll') });
-                    if (localStorage.getItem('loadAll')) {
+                    if (localStorage.getItem('loadAll') == "true") {
                         localStorage.setItem("last", 0);
                         socket.emit("getUpdate", 0);
                         localStorage.setItem('loadAll', false);
@@ -162,15 +161,17 @@ if (localStorage.getItem("uid") == null) {
                         $("#messageText").val("");
                         document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                         userMsgId++;
-                    })
+                    });
 
                     socket.on('update', () => {
                         //console.log("updatePing");
                         socket.emit("getUpdate", localStorage.getItem("last"))
-                    })
-                    socket.on('debug', (data => {
+                    });
+
+                    socket.on('debug', (data) => {
                         console.log(data);
-                    }))
+                    });
+
                     socket.on('sendChatMessage', (msgData) => {
                         if (msgData.length > 0 && document.visibilityState != "visible" && localStorage.getItem("last") != 0) {
                             if (localStorage.getItem("notif") == 2) {
@@ -230,6 +231,18 @@ if (localStorage.getItem("uid") == null) {
                             }
                         }
                     });
+
+                    socket.on('onlinePing', () => {
+                        socket.emit('online', localStorage.getItem('nickname'));
+                    });
+
+                    socket.on('userList', (userList) => {
+                        $("#userList").text("");
+                        for (var i = 0; i < userList.length; i++) {
+                            $("#userList").append("<p>" + userList[i] + "</p>");
+                        }
+                    })
+
                     $("#message").html(`
                         <div class="col-7">
                             <input type="text" placeholder="Chat" name="message" autocomplete="off" id="messageText" style="width: 99.7%; outline: none">
@@ -329,7 +342,6 @@ function urlParse(inputString, re) {
     if (decorationList != null) {
         for (var i = 0; i < string.length; i++) {
             if (string.indexOf(decorationList[decorationCounter], i) == i) {
-                console.log("url", decorationList);
                 var url = !(decorationList[decorationCounter].includes("http://") || decorationList[decorationCounter].includes("https://")) ? "http://" + decorationList[decorationCounter] : decorationList[decorationCounter];
                 outString += toAppend + "<a href='" + url + "'>" + decorationList[decorationCounter] + "</a>";
                 toAppend = "";
