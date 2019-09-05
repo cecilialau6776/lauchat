@@ -13,11 +13,11 @@
     </style>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <script>
-    $('<link>', {
-        rel: 'stylesheet',
-        type: 'text/css',
-        href: '/api/userCss?uid=' + localStorage.getItem("uid")
-    }).appendTo('head');
+        $('<link>', {
+            rel: 'stylesheet',
+            type: 'text/css',
+            href: '/api/userCss?uid=' + localStorage.getItem("uid")
+        }).appendTo('head');
     </script>
     <style>
         p {
@@ -34,6 +34,10 @@
             overflow-y: auto;
             height: 100%;
         }
+
+        .selected {
+            background-color: #dddddd;
+        }
     </style>
     <script>
         $(document).ready(() => {
@@ -43,16 +47,19 @@
                 var data = new FormData(form);
                 data.append("uid", localStorage.getItem("uid"));
                 var re = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-                if ($.trim(data.get("nickname")) == "" ||
-                    $.trim(data.get("status")) == "") {
-                    $("#alert").html(`
-                                <p style="color: red;">Please fill out the nickname and status.</p>
-                            `);
-                } else if (re.test($.trim(data.get("colorName")))) {
+                // if ($.trim(data.get("nickname")) == "" ||
+                //     $.trim(data.get("status")) == "") {
+                //     $("#alert").html(`
+                //                 <p style="color: red;">Please fill out the nickname and status.</p>
+                //             `);
+                // } else 
+                if (re.test($.trim(data.get("colorName")))) {
                     $("#alert").html(`
                         <p style="color: red;">Please enter a valid hex color.</p>
                         `);
-                } else {
+                }
+                // else {
+                    $("#alert").html("<p>Please wait... your profile is being updated.");
                     $.ajax({
                         url: "/editProfile",
                         method: "POST",
@@ -65,9 +72,8 @@
                             localStorage.setItem("pfp", data.pfp);
                         }
                     });
-                }
-            })
-        });
+                })
+            });
     </script>
 </head>
 
@@ -128,16 +134,16 @@
             <div class="container no-gutters" style="height: 100%; max-width: 100%">
                 <div class="row">
                     <div class="col-lg-3 scrollable" id="menu" style="border-right: 1px solid black">
-                        <div class="row" onclick="" style="padding: 5%">
-                            <p style="margin: auto;" id="userSettingsButton" onclick="setMenu('user')">User</p>
+                        <div class="row" id="userSettingsButton" onclick="setMenu('user')" style="height: 5%" onclick="setMenu('user')">
+                            <p style="margin: auto; padding-left: 5%;">User</p>
                         </div>
-                        <div class="row" onclick="" style="padding: 5%">
-                            <p style="margin: auto;" id="notifSettingsButton" onclick="setMenu('notif')">Notifications</p>
+                        <div class="row" id="notifSettingsButton" onclick="setMenu('notif')" style="height: 5%" onclick="setMenu('notif')">
+                            <p style="margin: auto; padding-left: 5%;">Notifications</p>
                         </div>
-                        <div class="row" onclick="" style="padding: 5%">
-                            <p style="margin: auto;" id="notifSettingsButton" onclick="setMenu('misc')">Miscellaneous</p>
+                        <div class="row" id="miscSettingsButton" onclick="setMenu('misc')" style="height: 5%" onclick="setMenu('misc')">
+                            <p style="margin: auto; padding-left: 5%;">Miscellaneous</p>
                         </div>
-                        <div class="row" style="padding: 1%">
+                        <div class="row" style="margin: 1%">
                             <button onclick="exitSettings()">Exit Settings</button>
                         </div>
                     </div>

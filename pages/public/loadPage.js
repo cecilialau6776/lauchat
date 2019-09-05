@@ -288,6 +288,7 @@ function openSettings() {
     $("#settings").prop("hidden", false);
     $("#main").prop("hidden", true);
     $("#bottomBar").prop("hidden", true);
+    $("#userSettingsButton").addClass("selected");
 }
 
 function exitSettings() {
@@ -360,11 +361,13 @@ function urlParse(inputString, re) {
     }
 }
 
-const menuNames = ["userSettings", "notifSettings"]
+const menuNames = ["userSettings", "notifSettings", "miscSettings"]
 
 function setMenu(name) {
     for (var i = 0; i < menuNames.length; i++) {
         $("#" + menuNames[i]).prop("hidden", true);
+        $("#" + menuNames[i] + "Button").removeClass("selected")
     }
     $("#" + name + "Settings").prop("hidden", false);
+    $("#" + name + "SettingsButton").addClass("selected")
 }

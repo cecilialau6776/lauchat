@@ -64,8 +64,8 @@ io.on('connection', (socket) => {
 						userRef = JSON.parse(JSON.stringify(userRef));
 						for (var i = 0; i < chat.length; i++) {
 							// io.emit("debug", [userRef, chat]);
-							// console.log(userRef[chat[i].uid])
-							// console.log(i, chat[i].uid);
+							console.log(userRef[chat[i].uid])
+							console.log(i, chat[i].nickname);
 							chat[i].nickname = userRef[chat[i].uid].nickname;
 							chat[i].username = userRef[chat[i].uid].username;
 							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
@@ -244,7 +244,9 @@ app.post("/editProfile", (req, res) => {
 		dbo.collection("users").find().toArray().then((result) => {
 			form.parse(req, (err, fields, files) => {
 				if (err) throw err;
-				if (files.pfp != undefined) {
+				console.log("files");
+				console.log(files.pfp);
+				if (files.pfp.name == "") {
 					md5File(files.pfp.path, (err, hash) => {
 						if (err) throw err;
 						fields.pfp = hash + ".jpg";
@@ -259,11 +261,16 @@ app.post("/editProfile", (req, res) => {
 							console.log(fields);
 							if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
 							fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
-							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: { nickname: fields.nickname, status: fields.status, pfp: fields.pfp, nameColor: fields.nameColor }})
+							var toSet = {};
+							for (i = 0; i < fields.length; i++) {
+								var name = Object.getOwnPropertyNames(fields)[i];
+								toSet[name] = fields[name];
+							}
+							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet })
 							res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
 						})
 					})
-				}
+				} //TODO: add else for if no pfp
 				if (files.css != undefined) {
 					fs.renameSync(files.css.path, __dirname + "/uploads/css/" + fields.uid + ".css");
 				}
