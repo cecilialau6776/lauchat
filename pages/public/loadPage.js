@@ -118,7 +118,6 @@ if (localStorage.getItem("uid") == null) {
                     socket.emit('login', { username: data.username, loadAll: localStorage.getItem('loadAll') });
                     if (localStorage.getItem('loadAll') == "true") {
                         localStorage.setItem("last", 0);
-                        socket.emit("getUpdate", 0);
                         localStorage.setItem('loadAll', false);
                     }
                     var loaded = [];

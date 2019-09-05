@@ -217,7 +217,9 @@
                     </div>
                     <div class="col-lg-9 offset-lg-3 scrollable" id="miscSettings" hidden>
                         <div class="row" stlye="padding: 1%">
-                            <input type="button" value="Reload Lauchat with all messages" onclick="localStorage.setItem('loadAll', true); window.location.href='/'">
+                            <input type="button" value="Reload Lauchat with all messages (this will take a very, very long time.)" onclick="localStorage.setItem('loadAll', true); window.location.href='/'">
+                            <input type="button" value="Logout" onclick="localStorage.clear(); window.location.href='/'">
+
                         </div>
                         <div id="alert">
                         </div>

@@ -44,10 +44,11 @@ io.on('connection', (socket) => {
 		userList.push(userData.username);
 		console.log("userList", userList);
 		io.emit('userList', userList);
-		if (userData.loadAll != true) {
-			mongoClient.connect(mongoUrl,  {useNewUrlParser: true }, (err, db) => {
-				if (err) throw err;
-				var dbo = db.db("mostWanted");
+		mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
+			if (err) throw err;
+			var dbo = db.db("mostWanted");
+			console.log(userData);
+			if (userData.loadAll != "true") {
 				dbo.collection("chatMessages").find().sort({ timestamp: -1 }).limit(100).toArray().then((result) => {
 					var uidList = []
 					for (var i = 0; i < result.length; i++) {
@@ -64,8 +65,8 @@ io.on('connection', (socket) => {
 						userRef = JSON.parse(JSON.stringify(userRef));
 						for (var i = 0; i < chat.length; i++) {
 							// io.emit("debug", [userRef, chat]);
-							console.log(userRef[chat[i].uid])
-							console.log(i, chat[i].nickname);
+							// console.log(userRef[chat[i].uid])
+							// console.log(i, chat[i].nickname);
 							chat[i].nickname = userRef[chat[i].uid].nickname;
 							chat[i].username = userRef[chat[i].uid].username;
 							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
@@ -75,9 +76,37 @@ io.on('connection', (socket) => {
 						io.emit("sendChatMessage", chat);
 					})
 				})
-			});
-		}
-	})
+			} else {
+				dbo.collection("chatMessages").find().sort({ timestamp: -1 }).toArray().then((result) => {
+					var uidList = []
+					for (var i = 0; i < result.length; i++) {
+						uidList.push({ uid: result[i].uid });
+					}
+					uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
+					dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
+						var chat = Array.from(result).reverse();
+						var userRef = {};
+						for (var i = 0; i < users.length; i++) {
+							userRef[users[i].uid] = users[i];
+							// console.log(users[i].uid);
+						}
+						userRef = JSON.parse(JSON.stringify(userRef));
+						for (var i = 0; i < chat.length; i++) {
+							// io.emit("debug", [userRef, chat]);
+							// console.log(userRef[chat[i].uid])
+							// console.log(i, chat[i].nickname);
+							chat[i].nickname = userRef[chat[i].uid].nickname;
+							chat[i].username = userRef[chat[i].uid].username;
+							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+							chat[i].pfp = userRef[chat[i].uid].pfp;
+							delete chat[i].uid;
+						}
+						io.emit("sendChatMessage", chat);
+					})
+				})
+			}
+		});
+	});
 
 	socket.on('chat message', (data) => {
 		data["timestamp"] = new Date().getTime();
@@ -246,7 +275,7 @@ app.post("/editProfile", (req, res) => {
 				if (err) throw err;
 				console.log("files");
 				console.log(files.pfp);
-				if (files.pfp.name == "") {
+				if (files.pfp.name != "") {
 					md5File(files.pfp.path, (err, hash) => {
 						if (err) throw err;
 						fields.pfp = hash + ".jpg";
@@ -262,15 +291,31 @@ app.post("/editProfile", (req, res) => {
 							if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
 							fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
 							var toSet = {};
-							for (i = 0; i < fields.length; i++) {
-								var name = Object.getOwnPropertyNames(fields)[i];
-								toSet[name] = fields[name];
+							if (fields.nickname != "") toSet.nickname = fields.nickname;
+							if (fields.status != "") toSet.status = fields.status;
+							if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
+							if (toSet != {}) {
+								dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
+								res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+							} else {
+								res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
 							}
-							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet })
-							res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
 						})
 					})
-				} //TODO: add else for if no pfp
+				} else {
+					if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
+					fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
+					var toSet = {};
+					if (fields.nickname != "") toSet.nickname = fields.nickname;
+					if (fields.status != "") toSet.status = fields.status;
+					if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
+					if (toSet != {}) {
+						dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
+						res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+					} else {
+						res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+					}
+				}
 				if (files.css != undefined) {
 					fs.renameSync(files.css.path, __dirname + "/uploads/css/" + fields.uid + ".css");
 				}
@@ -281,20 +326,20 @@ app.post("/editProfile", (req, res) => {
 
 // https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript
 function getIndicesOf(searchStr, str, caseSensitive) {
-    var searchStrLen = searchStr.length;
-    if (searchStrLen == 0) {
-        return [];
-    }
-    var startIndex = 0, index, indices = [];
-    if (!caseSensitive) {
-        str = str.toLowerCase();
-        searchStr = searchStr.toLowerCase();
-    }
-    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
-        indices.push(index);
-        startIndex = index + searchStrLen;
-    }
-    return indices;
+	var searchStrLen = searchStr.length;
+	if (searchStrLen == 0) {
+		return [];
+	}
+	var startIndex = 0, index, indices = [];
+	if (!caseSensitive) {
+		str = str.toLowerCase();
+		searchStr = searchStr.toLowerCase();
+	}
+	while ((index = str.indexOf(searchStr, startIndex)) > -1) {
+		indices.push(index);
+		startIndex = index + searchStrLen;
+	}
+	return indices;
 }
 
 async function register(userData) {
@@ -307,12 +352,19 @@ async function register(userData) {
 			mongoClient.connect(mongoUrl, { useNewUrlParser: true }, function (err, db) {
 				if (err) throw err;
 				var dbo = db.db("mostWanted");
-				userData["uid"] = crypto.randomBytes(32).toString('hex');
-				bCrypt.hash(userData["password"], 10, (err, hash) => {
-					if (err) throw err;
-					userData["password"] = hash;
-					dbo.collection("users").insertOne(userData);
-					resolve("User created!");
+				dbo.collection("users").findOne({ username: userData.username }).then((username) => {
+					if (username) {
+						userData["uid"] = crypto.randomBytes(32).toString('hex');
+						bCrypt.hash(userData["password"], 10, (err, hash) => {
+							if (err) throw err;
+							userData["password"] = hash;
+							dbo.collection("users").insertOne(userData);
+							resolve("User created!");
+						});
+					} else {
+						resolve({ status: "failed", message: "That username is already taken!"})
+					}
+
 				});
 			})
 		}
@@ -330,7 +382,7 @@ async function login(username, password) {
 					if (result) {
 						var token = crypto.randomBytes(32).toString('hex');
 						dbo.collection("users").updateOne({ _id: json["_id"] }, { $set: { token: token } });
-						resolve({ status: "success", uid: json["uid"], token: token, username: json.username, nickname: json.nickname, pfp: json.pfp});
+						resolve({ status: "success", uid: json["uid"], token: token, username: json.username, nickname: json.nickname, pfp: json.pfp });
 					} else {
 						resolve({ status: "failure", message: "Incorrect username or password" });
 					}
