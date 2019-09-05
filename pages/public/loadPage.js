@@ -213,8 +213,7 @@ if (localStorage.getItem("uid") == null) {
                                     <div style="width:48px">
                                         <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data[i].pfp + `">
                                     </div>
-                                    &nbsp;
-                                    <div>
+                                    <div style="padding-left: 1%; width: calc(100% - 48px);>
                                         <span class="` + data[i].username + ` username">` + data[i].nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'>" + "(" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + ")" + `</span>
                                         <p>` + message + `</p>
                                     </div>
