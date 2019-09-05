@@ -292,13 +292,17 @@ app.post("/editProfile", (req, res) => {
 							fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
 							var toSet = {};
 							if (fields.nickname != "") toSet.nickname = fields.nickname;
-							if (fields.status != "") toSet.status = fields.status;
-							if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
-							if (toSet != {}) {
-								dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
-								res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+							if (xss(fields.nickname) == fields.nickname) {
+								if (fields.status != "") toSet.status = fields.status;
+								if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
+								if (toSet != {}) {
+									dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
+									res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+								} else {
+									res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+								}
 							} else {
-								res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+								res.send({ message: "Hey! No xss :<"});
 							}
 						})
 					})
@@ -307,13 +311,17 @@ app.post("/editProfile", (req, res) => {
 					fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
 					var toSet = {};
 					if (fields.nickname != "") toSet.nickname = fields.nickname;
-					if (fields.status != "") toSet.status = fields.status;
-					if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
-					if (toSet != {}) {
-						dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
-						res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+					if (xss(fields.nickname) == fields.nickname) {
+						if (fields.status != "") toSet.status = fields.status;
+						if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
+						if (toSet != {}) {
+							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
+							res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+						} else {
+							res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+						}
 					} else {
-						res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+						res.send({ message: "Hey! No xss :<"});
 					}
 				}
 				if (files.css != undefined) {
