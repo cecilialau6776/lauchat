@@ -273,26 +273,26 @@ app.post("/editProfile", (req, res) => {
 		dbo.collection("users").find().toArray().then((result) => {
 			form.parse(req, (err, fields, files) => {
 				if (err) throw err;
-				console.log("files");
-				console.log(files.pfp);
-				if (files.pfp.name != "") {
-					md5File(files.pfp.path, (err, hash) => {
-						if (err) throw err;
-						fields.pfp = hash + ".jpg";
-						jimp.read(files.pfp.path, (err, lenna) => {
+				if (xss(fields.nickname) != fields.nickname || xss(fields.status) != fields.status || xss(fields.nameColor) != fields.nameColor) {
+					res.send({ message: "Hey! No xss :<" });
+				} else {
+					if (files.pfp.name != "") {
+						md5File(files.pfp.path, (err, hash) => {
 							if (err) throw err;
-							var path = __dirname + "/uploads/pfps/" + hash + ".jpg";
-							lenna
-								.resize(512, 512)
-								.quality(60)
-								.write(path);
-							fs.unlinkSync(files.pfp.path);
-							console.log(fields);
-							if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
-							fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
-							var toSet = {};
-							if (fields.nickname != "") toSet.nickname = fields.nickname;
-							if (xss(fields.nickname) == fields.nickname) {
+							fields.pfp = hash + ".jpg";
+							jimp.read(files.pfp.path, (err, lenna) => {
+								if (err) throw err;
+								var path = __dirname + "/uploads/pfps/" + hash + ".jpg";
+								lenna
+									.resize(512, 512)
+									.quality(60)
+									.write(path);
+								fs.unlinkSync(files.pfp.path);
+								console.log(fields);
+								if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
+								fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
+								var toSet = {};
+								if (fields.nickname != "") toSet.nickname = fields.nickname;
 								if (fields.status != "") toSet.status = fields.status;
 								if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
 								if (toSet != {}) {
@@ -301,17 +301,13 @@ app.post("/editProfile", (req, res) => {
 								} else {
 									res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
 								}
-							} else {
-								res.send({ message: "Hey! No xss :<"});
-							}
+							})
 						})
-					})
-				} else {
-					if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
-					fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
-					var toSet = {};
-					if (fields.nickname != "") toSet.nickname = fields.nickname;
-					if (xss(fields.nickname) == fields.nickname) {
+					} else {
+						if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
+						fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
+						var toSet = {};
+						if (fields.nickname != "") toSet.nickname = fields.nickname;
 						if (fields.status != "") toSet.status = fields.status;
 						if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
 						if (toSet != {}) {
@@ -320,8 +316,6 @@ app.post("/editProfile", (req, res) => {
 						} else {
 							res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
 						}
-					} else {
-						res.send({ message: "Hey! No xss :<"});
 					}
 				}
 				if (files.css != undefined) {
@@ -370,7 +364,7 @@ async function register(userData) {
 							resolve("User created!");
 						});
 					} else {
-						resolve({ status: "failed", message: "That username is already taken!"})
+						resolve({ status: "failed", message: "That username is already taken!" })
 					}
 
 				});
