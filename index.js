@@ -305,9 +305,9 @@ app.post("/editProfile", (req, res) => {
 								if (fields.nameColor != "#" && fields.nameColor != "") toSet.nameColor = fields.nameColor;
 								if (Object.entries(toSet).length != 0) {
 									dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
-										dbo.collection("users".find({uid: fields.uid}).toArray().then((result) => {
+										dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
 											res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
-										}))
+										});
 									});
 								} else {
 									res.send({ message: "You haven't changed anything!", nickname: result[0].nickname, pfp: result[0].pfp });
@@ -323,9 +323,9 @@ app.post("/editProfile", (req, res) => {
 						if (fields.nameColor != "#" && fields.nameColor != "") toSet.nameColor = fields.nameColor;
 						if (Object.entries(toSet).length != 0) {
 							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
-								dbo.collection("users".find({uid: fields.uid}).toArray().then((result) => {
+								dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
 									res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
-								}))
+								});
 							});
 						} else {
 							res.send({ message: "You haven't changed anything!", nickname: result[0].nickname, pfp: result[0].pfp });
