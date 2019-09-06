@@ -277,11 +277,12 @@ app.post("/editProfile", (req, res) => {
 	mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
 		if (err) throw err;
 		var dbo = db.db("mostWanted");
-		dbo.collection("users").find().toArray().then((result) => {
-			form.parse(req, (err, fields, files) => {
+		form.parse(req, (err, fields, files) => {
+			dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
+				console.log(result);
 				if (err) throw err;
 				if (xss(fields.nickname) != fields.nickname || xss(fields.status) != fields.status || xss(fields.nameColor) != fields.nameColor) {
-					res.send({ message: "Hey! No xss :<" });
+					res.send({ message: "Hey! No xss :<", nickname: result.nickname, pfp: result.pfp});
 				} else {
 					if (files.pfp.name != "") {
 						md5File(files.pfp.path, (err, hash) => {
@@ -301,12 +302,15 @@ app.post("/editProfile", (req, res) => {
 								var toSet = {};
 								if (fields.nickname != "") toSet.nickname = fields.nickname;
 								if (fields.status != "") toSet.status = fields.status;
-								if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
-								if (toSet != {}) {
-									dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
-									res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+								if (fields.nameColor != "#" && fields.nameColor != "") toSet.nameColor = fields.nameColor;
+								if (Object.entries(toSet).length != 0) {
+									dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
+										dbo.collection("users".find({uid: fields.uid}).toArray().then((result) => {
+											res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
+										}))
+									});
 								} else {
-									res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+									res.send({ message: "You haven't changed anything!", nickname: result[0].nickname, pfp: result[0].pfp });
 								}
 							})
 						})
@@ -316,12 +320,15 @@ app.post("/editProfile", (req, res) => {
 						var toSet = {};
 						if (fields.nickname != "") toSet.nickname = fields.nickname;
 						if (fields.status != "") toSet.status = fields.status;
-						if (fields.nameColor != "") toSet.nameColor = fields.nameColor;
-						if (toSet != {}) {
-							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet });
-							res.send({ message: "Profile updated. Please refresh.", nickname: fields.nickname, pfp: fields.pfp });
+						if (fields.nameColor != "#" && fields.nameColor != "") toSet.nameColor = fields.nameColor;
+						if (Object.entries(toSet).length != 0) {
+							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
+								dbo.collection("users".find({uid: fields.uid}).toArray().then((result) => {
+									res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
+								}))
+							});
 						} else {
-							res.send({ message: "You haven't changed anything!", nickname: fields.nickname, pfp: fields.pfp });
+							res.send({ message: "You haven't changed anything!", nickname: result[0].nickname, pfp: result[0].pfp });
 						}
 					}
 				}
@@ -331,7 +338,7 @@ app.post("/editProfile", (req, res) => {
 			})
 		})
 	});
-})
+});
 
 // https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript
 function getIndicesOf(searchStr, str, caseSensitive) {
