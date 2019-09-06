@@ -12,13 +12,6 @@
     <style id="nameColors">
     </style>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <script>
-        $('<link>', {
-            rel: 'stylesheet',
-            type: 'text/css',
-            href: '/api/userCss?uid=' + localStorage.getItem("uid")
-        }).appendTo('head');
-    </script>
     <style>
         p {
             width: 100%;
@@ -78,6 +71,13 @@
                     });
                 })
             });
+    </script>
+    <script>
+        $('<link>', {
+            rel: 'stylesheet',
+            type: 'text/css',
+            href: '/api/userCss?uid=' + localStorage.getItem("uid")
+        }).appendTo('head');
     </script>
 </head>
 

@@ -278,6 +278,7 @@ app.post("/editProfile", (req, res) => {
 		if (err) throw err;
 		var dbo = db.db("mostWanted");
 		form.parse(req, (err, fields, files) => {
+			console.log(fields);
 			dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
 				console.log(result);
 				if (err) throw err;
@@ -303,19 +304,22 @@ app.post("/editProfile", (req, res) => {
 								if (fields.nickname != "") toSet.nickname = fields.nickname;
 								if (fields.status != "") toSet.status = fields.status;
 								if (fields.nameColor != "#" && fields.nameColor != "") toSet.nameColor = fields.nameColor;
+								toSet.pfp = fields.pfp;
 								if (Object.entries(toSet).length != 0) {
 									dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
 										dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
 											res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
 										});
 									});
-								} else {
-									res.send({ message: "You haven't changed anything!", nickname: result[0].nickname, pfp: result[0].pfp });
 								}
 							})
 						})
 					} else {
-						if (fields.removeCss) fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
+						console.log(fields.removeCss);
+						if (fields.removeCss != undefined) {
+							console.log("removed css");
+							fs.unlinkSync(__dirname + "/uploads/css/" + fields.uid + ".css");
+						}
 						fields.nameColor = fields.nameColor == undefined ? "#000000" : fields.nameColor;
 						var toSet = {};
 						if (fields.nickname != "") toSet.nickname = fields.nickname;
@@ -327,8 +331,10 @@ app.post("/editProfile", (req, res) => {
 									res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
 								});
 							});
-						} else {
+						} else if (files.css.name == "" && fields.removeCss == undefined) {
 							res.send({ message: "You haven't changed anything!", nickname: result[0].nickname, pfp: result[0].pfp });
+						} else {
+							res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
 						}
 					}
 				}
@@ -369,7 +375,7 @@ async function register(userData) {
 				if (err) throw err;
 				var dbo = db.db("mostWanted");
 				dbo.collection("users").findOne({ username: userData.username }).then((username) => {
-					if (username) {
+					if (username == null) {
 						userData["uid"] = crypto.randomBytes(32).toString('hex');
 						bCrypt.hash(userData["password"], 10, (err, hash) => {
 							if (err) throw err;
