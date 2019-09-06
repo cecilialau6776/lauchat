@@ -67,10 +67,17 @@ io.on('connection', (socket) => {
 							// io.emit("debug", [userRef, chat]);
 							// console.log(userRef[chat[i].uid])
 							// console.log(i, chat[i].nickname);
-							chat[i].nickname = userRef[chat[i].uid].nickname;
-							chat[i].username = userRef[chat[i].uid].username;
-							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
-							chat[i].pfp = userRef[chat[i].uid].pfp;
+							if (userRef[chat[i].uid] == undefined) {
+								chat[i].nickname = "Deleted User";
+								chat[i].username = "delUser";
+								chat[i].nameColor = "#000000";
+								chat[i].pfp = null;
+							} else {
+								chat[i].nickname = userRef[chat[i].uid].nickname;
+								chat[i].username = userRef[chat[i].uid].username;
+								chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+								chat[i].pfp = userRef[chat[i].uid].pfp;
+							}
 							delete chat[i].uid;
 						}
 						io.emit("sendChatMessage", chat);

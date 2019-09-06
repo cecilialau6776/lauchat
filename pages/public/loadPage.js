@@ -99,7 +99,7 @@ if (localStorage.getItem("uid") == null) {
     if (!Notification) { alert('Desktop notifications not available in your browser. Try Chromium.'); }
     if (Notification.permission !== "granted") { Notification.requestPermission(); }
     $(document).ready(function () {
-
+        window.sanitizer = new goog.html.sanitizer.HtmlSanitizer((new goog.html.sanitizer.HtmlSanitizer.Builder()).onlyAllowTags(["IMG"]));
         document.getElementById("notif" + localStorage.getItem('notif')).checked = true;
         var info = { uid: localStorage.getItem("uid"), token: localStorage.getItem("token") };
 
@@ -126,37 +126,13 @@ if (localStorage.getItem("uid") == null) {
                     var sent = [];
                     var userMsgId = 0;
                     var loadLast = localStorage.getItem("last");
-                    var builder = new goog.html.sanitizer.HtmlSanitizer.Builder();
-                    builder.onlyAllowTags(["IMG"]);
-                    var sanitizer = new goog.html.sanitizer.HtmlSanitizer(builder);
-
+                    var sanitizer = new goog.html.sanitizer.HtmlSanitizer();
                     $("#chatForm").submit((event) => {
                         event.preventDefault();
                         var sendData = { uid: localStorage.getItem("uid"), message: $("#messageText").val(), id: userMsgId }
                         if ($.trim(sendData.message) != '') socket.emit("chat message", sendData);
                         sending.push(userMsgId);
-                        message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(sendData.message));
-                        var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
-                        if (message.includes("*") || message.includes("~~")) {
-                            message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
-                            message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
-                            message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
-                        }
-                        if (re.test(message)) {
-                            message = urlParse(message, re);
-                        }
-                        $("#chat").append(`
-                        <div class="row message ` + localStorage.getItem("username") + `-message">
-                            <div style="width:48px">
-                                <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + localStorage.getItem("pfp") + `">
-                            </div>
-                            &nbsp;
-                            <div>
-                                <span class="` + localStorage.getItem("username") + ` username">` + localStorage.getItem("nickname") + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey' id='" + localStorage.getItem("username") + userMsgId + "'>" + "Sending..." + `</span>
-                                <p>` + message + `</p>
-                            </div>
-                        </div>`
-                        );
+                        appendMessage(sendData.message, "Sending...", { username: localStorage.getItem("username"), nickname: localStorage.getItem("nickname"), pfp: localStorage.getItem("pfp"), id: userMsgId });
                         $("#messageText").val("");
                         document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                         userMsgId++;
@@ -184,6 +160,7 @@ if (localStorage.getItem("uid") == null) {
                                 document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                             }
                             if (data[i].username == localStorage.getItem('username') && sending.includes(data[i].id)) {
+                                console.log($("#" + localStorage.getItem("username") + data[i].id));
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 $("#" + localStorage.getItem("username") + data[i].id).text("(" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + ")");
@@ -197,28 +174,8 @@ if (localStorage.getItem("uid") == null) {
                                 loaded.push(data[i].timestamp);
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
-                                message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(data[i].message));
-                                var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
-                                if (message.includes("*") || message.includes("~~")) {
-                                    message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
-                                    message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
-                                    message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
-                                }
-                                if (re.test(message)) {
-                                    message = urlParse(message, re);
-                                }
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
-                                $("#chat").append(`
-                                <div class="row message ` + data[i].username + `-message">
-                                    <div style="width:48px">
-                                        <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data[i].pfp + `">
-                                    </div>
-                                    <div style="padding-left: 1%; width: calc(100% - 48px);">
-                                        <span class="` + data[i].username + ` username">` + data[i].nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'>" + "(" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + ")" + `</span>
-                                        <p>` + message + `</p>
-                                    </div>
-                                </div>`
-                                );
+                                appendMessage(msgData[i].message, t, { username: data[i].username, nickname: data[i].nickname, pfp: data[i].pfp});
                                 if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
                                     $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
                                     nameColorsLoaded.push(data[i].username);
@@ -252,17 +209,6 @@ if (localStorage.getItem("uid") == null) {
 
         })
     });
-}
-
-function appendMessage(message) {
-    if (message.timestamp == loadLast) {
-        document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
-    }
-    if (message.username == localStorage.getItem('username') && sending.includes(message.id)) {
-    }
-
-
-
 }
 
 function notifyMe(body) {
@@ -329,6 +275,37 @@ function parse(inputString, openTag, closeTag, regexString, seperator) {
     } else {
         return (inputString);
     }
+}
+
+function appendMessage(message, timestamp, data) {
+    var t;
+    if (typeof timestamp != "string") {
+        t = ((timestamp.getHours() + 20) % 24) + ":" + timestamp.getMinutes() + ":" + timestamp.getSeconds();
+    } else {
+        t = timestamp;
+    }
+    var id = (data.id == undefined) ? "" : " id='" + data.username + data.id + "'";
+    message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(message));
+    var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
+    if (message.includes("*") || message.includes("~~")) {
+        message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
+        message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
+        message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
+    }
+    if (re.test(message)) {
+        message = urlParse(message, re);
+    }
+    $("#chat").append(`
+            <div class="row message ` + data.username + `-message">
+                <div style="width:48px">
+                    <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data.pfp + `">
+                </div>
+                <div style="padding-left: 1%; width: calc(100% - 48px);">
+                    <span class="` + data.username + ` username">` + data.nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'"+ id + ">(" + t + `)</span>
+                    <p>` + message + `</p>
+                </div>
+            </div>`
+    );
 }
 
 function urlParse(inputString, re) {
