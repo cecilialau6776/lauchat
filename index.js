@@ -355,7 +355,9 @@ app.post("/api/upload", (req, res) => {
 	var uid;
 	var type;
 	var fileName;
-	(new formidable.IncomingForm).parse(req)
+	var form = new formidable.IncomingForm;
+	form.maxFileSize = 10 * 1024 * 1024;
+		form.parse(req)
 		.on("file", (name, file) => {
 			md5File(file.path, (err, hash) => {
 				if (err) throw err;

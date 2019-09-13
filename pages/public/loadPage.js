@@ -149,7 +149,10 @@ if (localStorage.getItem("uid") == null) {
                                 enctype: "multipart/form-data",
                                 contentType: false,
                                 processData: false,
-                                data: fileData
+                                data: fileData,
+                                success: () => {
+                                    $("#uploadButton").val("");
+                                }
                             });
                         }
                     });
