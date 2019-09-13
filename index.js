@@ -6,11 +6,12 @@ const io = require('socket.io')(http);
 const formidable = require('formidable');
 const bCrypt = require('bcrypt');
 const crypto = require('crypto');
-const xss = require('xss');
+const sanitizeHtml = require('sanitize-html');
 const favicon = require('serve-favicon');
 const md5File = require('md5-file');
 const jimp = require('jimp');
 const fs = require('fs');
+const $ = require('jquery');
 
 require('google-closure-library');
 goog.require("goog.html.sanitizer.HtmlSanitizer");
@@ -21,6 +22,7 @@ app.use(favicon(__dirname + '/pages/public/favicon.ico'));
 
 // const builder = new goog.html.sanitizer.HtmlSanitizer.Builder();
 // builder.onlyAllowTags(["IMG"]);
+// const sanitizer = new goog.html.sanitizer.HtmlSanitizer(builder);
 
 var mongoUrl = "mongodb://localhost:27017/";
 var bodyParser = require('body-parser');
@@ -116,15 +118,15 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('chat message', (data) => {
-		data["timestamp"] = new Date().getTime();
-
-		mongoClient.connect(mongoUrl, (err, db) => {
-			if (err) throw err;
-			var dbo = db.db("mostWanted");
-			dbo.collection("chatMessages").insertOne(data);
-		})
-		io.emit('update');
-		console.log(data);
+		if (!xss(data)) {
+			data["timestamp"] = new Date().getTime();
+			mongoClient.connect(mongoUrl, (err, db) => {
+				if (err) throw err;
+				var dbo = db.db("mostWanted");
+				dbo.collection("chatMessages").insertOne(data);
+			})
+			io.emit('update');
+		}
 	})
 
 	socket.on('getUpdate', (timestamp) => {
@@ -143,13 +145,9 @@ io.on('connection', (socket) => {
 						var userRef = {};
 						for (var i = 0; i < users.length; i++) {
 							userRef[users[i].uid] = users[i];
-							// console.log(users[i].uid);
 						}
 						userRef = JSON.parse(JSON.stringify(userRef));
 						for (var i = 0; i < chat.length; i++) {
-							// io.emit("debug", [userRef, chat]);
-							// console.log(userRef[chat[i].uid])
-							// console.log(i, chat[i].uid);
 							chat[i].nickname = userRef[chat[i].uid].nickname;
 							chat[i].username = userRef[chat[i].uid].username;
 							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
@@ -196,7 +194,13 @@ app.get('/api/userPfp', (req, res) => {
 	} else {
 		res.sendFile(__dirname + '/uploads/pfps/' + req.query.pfp);
 	}
-})
+});
+app.get('/api/picture', (req, res) => {
+	res.sendFile(__dirname + "/uploads/pictures/" + req.query.img);
+});
+app.get('/api/file', (req, res) => {
+	res.sendFile(__dirname + "/uploads/files/" + req.query.file);
+});
 
 app.get('/favicon.png', (eq, res) => {
 	res.sendFile(__dirname + "/pages/public/favicon.png");
@@ -236,7 +240,7 @@ app.post('/api/register', (req, res) => {
 				}
 			});
 		})
-})
+});
 
 app.post('/api/login', (req, res) => {
 	var form = new formidable.IncomingForm();
@@ -255,7 +259,7 @@ app.post('/api/login', (req, res) => {
 				res.send(data);
 			})
 		});
-})
+});
 
 app.post('/api/online', (req, res) => {
 	mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
@@ -270,7 +274,7 @@ app.post('/api/online', (req, res) => {
 			}
 		})
 	})
-})
+});
 
 app.post("/editProfile", (req, res) => {
 	var form = new formidable.IncomingForm();
@@ -278,11 +282,11 @@ app.post("/editProfile", (req, res) => {
 		if (err) throw err;
 		var dbo = db.db("mostWanted");
 		form.parse(req, (err, fields, files) => {
-			console.log(fields);
 			dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
 				console.log(result);
 				if (err) throw err;
-				if (xss(fields.nickname) != fields.nickname || xss(fields.status) != fields.status || xss(fields.nameColor) != fields.nameColor) {
+				var re = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+				if (xss(fields.nickname) || xss(fields.status) || xss(fields.nameColor) || fields.nickname.includes("\"") || !re.test(fields.nameColor)) {
 					res.send({ message: "Hey! No xss :<", nickname: result.nickname, pfp: result.pfp});
 				} else {
 					if (files.pfp.name != "") {
@@ -324,7 +328,7 @@ app.post("/editProfile", (req, res) => {
 						var toSet = {};
 						if (fields.nickname != "") toSet.nickname = fields.nickname;
 						if (fields.status != "") toSet.status = fields.status;
-						if (fields.nameColor != "#" && fields.nameColor != "") toSet.nameColor = fields.nameColor;
+						if (fields.nameColor != "#" || fields.nameColor != "") toSet.nameColor = fields.nameColor;
 						if (Object.entries(toSet).length != 0) {
 							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
 								dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
@@ -346,6 +350,50 @@ app.post("/editProfile", (req, res) => {
 	});
 });
 
+app.post("/api/upload", (req, res) => {
+	timestamp = new Date().getTime();
+	var uid;
+	var type;
+	var fileName;
+	(new formidable.IncomingForm).parse(req)
+		.on("file", (name, file) => {
+			md5File(file.path, (err, hash) => {
+				if (err) throw err;
+				const validImageTypes = ['image/gif', 'image/jpeg', 'image/png'];
+				if (validImageTypes.includes(file.type)) {
+					type = "img";
+					fs.renameSync(file.path, __dirname + "/uploads/pictures/" + hash + "." + file.name.split(".").pop());
+				} else {
+					type = "file";
+					fs.renameSync(file.path, __dirname + "/uploads/files/" + hash + "." + file.name.split(".").pop());
+				}
+				fileName = hash + "." + file.name.split(".").pop();
+			})
+		})
+		.on("field", (name, value) => {
+			if (name == "uid") uid = value;
+		})
+		.on("end", () => {
+			mongoClient.connect(mongoUrl, (err, db) => {
+				if (err) throw err;
+				var dbo = db.db("mostWanted");
+				if (type == "img") {
+					dbo.collection("chatMessages").insertOne({uid: uid, message: "<br/><img class='image-message' onload='if ((document.getElementById(\"chat-div\").scrollTop + document.getElementById(\"chat-div\").offsetHeight + this.height) >= document.getElementById(\"chat-div\").scrollHeight) document.getElementById(\"chat-div\").scrollTo(0, document.getElementById(\"chat\").offsetHeight);' style='max-height: 33vh;' src='/api/picture/?img=" + fileName + "'/>", type: type, timestamp: timestamp });
+				} else if (type == "file") {
+					dbo.collection("chatMessages").insertOne({uid: uid, message: "<br/><a target='_blank' href='/api/file/?file=" + fileName + "'>" + fileName + "</a>", type: type, timestamp: timestamp });
+
+				}
+				io.emit("update");
+				res.send({success: "success"});
+			})
+		})
+});
+
+function xss(input) {
+	console.log(input == sanitizeHtml(input, {allowedTags: [], allowedAttributes: {}}));
+	return (sanitizeHtml(input, {allowedTags: [], allowedAttributes: {}}) != input);
+}
+
 // https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript
 function getIndicesOf(searchStr, str, caseSensitive) {
 	var searchStrLen = searchStr.length;
@@ -366,7 +414,7 @@ function getIndicesOf(searchStr, str, caseSensitive) {
 
 async function register(userData) {
 	return new Promise((resolve, reject) => {
-		if (xss(userData.username) != userData.username) {
+		if (xss(userData.username) != userData.username || userData.username.contains("\"")) {
 			resolve({ status: "failed", message: "Hey! No xss :<" });
 		} else if (userData.username == "" || userData.password == "") {
 			resolve({ status: "failed", message: "Neither the username nor password can be blank." });

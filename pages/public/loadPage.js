@@ -130,12 +130,28 @@ if (localStorage.getItem("uid") == null) {
                     $("#chatForm").submit((event) => {
                         event.preventDefault();
                         var sendData = { uid: localStorage.getItem("uid"), message: $("#messageText").val(), id: userMsgId }
-                        if ($.trim(sendData.message) != '') socket.emit("chat message", sendData);
-                        sending.push(userMsgId);
-                        appendMessage(sendData.message, "Sending...", { username: localStorage.getItem("username"), nickname: localStorage.getItem("nickname"), pfp: localStorage.getItem("pfp"), id: userMsgId });
-                        $("#messageText").val("");
-                        document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
-                        userMsgId++;
+                        if ($.trim(sendData.message) != '') {
+                            socket.emit("chat message", sendData);
+                            sending.push(userMsgId);
+                            appendMessage(sendData.message, "Sending...", { username: localStorage.getItem("username"), nickname: localStorage.getItem("nickname"), pfp: localStorage.getItem("pfp"), id: userMsgId });
+                            $("#messageText").val("");
+                            document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
+                            userMsgId++;
+                        }
+                        
+                        if ($("#uploadButton")[0].files[0] != undefined) {
+                            var fileData = new FormData($("#chatForm")[0]);
+                            fileData.append("uid", localStorage.getItem("uid"));
+                            console.log(fileData);
+                            $.ajax({
+                                method: "POST",
+                                url: "/api/upload",
+                                enctype: "multipart/form-data",
+                                contentType: false,
+                                processData: false,
+                                data: fileData
+                            });
+                        }
                     });
 
                     socket.on('update', () => {
@@ -160,7 +176,6 @@ if (localStorage.getItem("uid") == null) {
                                 document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                             }
                             if (data[i].username == localStorage.getItem('username') && sending.includes(data[i].id)) {
-                                console.log($("#" + localStorage.getItem("username") + data[i].id));
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 $("#" + localStorage.getItem("username") + data[i].id).text("(" + ((t.getHours() + 20) % 24) + ":" + t.getMinutes() + ":" + t.getSeconds() + ")");
@@ -175,11 +190,12 @@ if (localStorage.getItem("uid") == null) {
                                 var t = new Date(1970, 0, 1);
                                 t.setMilliseconds(data[i].timestamp);
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
-                                appendMessage(msgData[i].message, t, { username: data[i].username, nickname: data[i].nickname, pfp: data[i].pfp});
+                                appendMessage(msgData[i].message, t, { type: msgData[i].type, username: data[i].username, nickname: data[i].nickname, pfp: data[i].pfp});
                                 if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
-                                    $("#nameColors").append("." + data[i].username + "{color: " + data[i].nameColor + "}");
+                                    $("#nameColors").append("." + data[i].username + "-username {color: " + data[i].nameColor + "}");
                                     nameColorsLoaded.push(data[i].username);
                                 }
+                                console.log(oldHeight);
                                 if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
                                     document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
                                 }
@@ -197,13 +213,6 @@ if (localStorage.getItem("uid") == null) {
                             $("#userList").append("<p>" + userList[i] + "</p>");
                         }
                     })
-
-                    $("#message").html(`
-                        <div class="col-7">
-                            <input type="text" placeholder="Chat" name="message" autocomplete="off" id="messageText" style="width: 99.7%; outline: none">
-                        </div>
-                            <input type="submit" id="messageButton" style="opacity: 0;position: absolute;left: -9999999px" tabindex="-1">
-                    `);
                 }
             }
 
@@ -284,16 +293,19 @@ function appendMessage(message, timestamp, data) {
     } else {
         t = timestamp;
     }
-    var id = (data.id == undefined) ? "" : " id='" + data.username + data.id + "'";
-    message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(message));
-    var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
-    if (message.includes("*") || message.includes("~~")) {
-        message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
-        message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
-        message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
-    }
-    if (re.test(message)) {
-        message = urlParse(message, re);
+    if (data.type == "plaintext" || data.type == undefined) {
+        var id = (data.id == undefined) ? "" : " id='" + data.username + data.id + "'";
+        message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(message));
+        var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
+        if (message.includes("*") || message.includes("~~")) {
+            message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
+            message = parse(message, "<em>", "</em>", "\\*{1}[^\\*]{0,}\\*{1}", "*");
+            message = parse(message, "<s>", "</s>", "~{2}[^~]{0,}~{2}", "~~");
+        }
+        if (re.test(message)) {
+            message = urlParse(message, re);
+        }
+        message = "<p>" + message + "</p>"
     }
     $("#chat").append(`
             <div class="row message ` + data.username + `-message">
@@ -301,8 +313,8 @@ function appendMessage(message, timestamp, data) {
                     <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data.pfp + `">
                 </div>
                 <div style="padding-left: 1%; width: calc(100% - 48px);">
-                    <span class="` + data.username + ` username">` + data.nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'"+ id + ">(" + t + `)</span>
-                    <p>` + message + `</p>
+                    <span class="` + data.username + `-username username">` + data.nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'"+ id + ">(" + t + `)</span>
+                    ` + message + `
                 </div>
             </div>`
     );
@@ -346,3 +358,12 @@ function setMenu(name) {
     $("#" + name + "Settings").prop("hidden", false);
     $("#" + name + "SettingsButton").addClass("selected")
 }
+
+$("img.image-message").each(() => {
+    var oldHeight = document.getElementById("chat-div").scrollHeight;
+    this.onload(() => {
+        if ((document.getElementById("chat-div").scrollTop + document.getElementById("chat-div").offsetHeight) >= oldHeight) {
+            document.getElementById("chat-div").scrollTo(0, document.getElementById("chat").offsetHeight);
+        }
+    })
+})
