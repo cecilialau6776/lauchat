@@ -142,18 +142,15 @@ if (localStorage.getItem("uid") == null) {
                         if ($("#uploadButton")[0].files[0] != undefined) {
                             var fileData = new FormData($("#chatForm")[0]);
                             fileData.append("uid", localStorage.getItem("uid"));
-                            console.log(fileData);
                             $.ajax({
                                 method: "POST",
                                 url: "/api/upload",
                                 enctype: "multipart/form-data",
                                 contentType: false,
                                 processData: false,
-                                data: fileData,
-                                success: () => {
-                                    $("#uploadButton").val("");
-                                }
+                                data: fileData
                             });
+                            $("#uploadButton").val("");
                         }
                     });
 
