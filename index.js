@@ -46,78 +46,80 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on('login', (userData) => {
-		userList.push(userData.username);
-		console.log("userList", userList);
-		io.emit('userList', userList);
-		mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
-			if (err) throw err;
-			var dbo = db.db("mostWanted");
-			console.log(userData);
-			if (userData.loadAll != "true") {
-				dbo.collection("chatMessages").find().sort({ timestamp: -1 }).limit(100).toArray().then((result) => {
-					var uidList = []
-					for (var i = 0; i < result.length; i++) {
-						uidList.push({ uid: result[i].uid });
-					}
-					uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
-					dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
-						var chat = Array.from(result).reverse();
-						var userRef = {};
-						for (var i = 0; i < users.length; i++) {
-							userRef[users[i].uid] = users[i];
-							// console.log(users[i].uid);
+		if (!xss(userData)) {
+			userList.push(userData.username);
+			console.log("userList", userList);
+			io.emit('userList', userList);
+			mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
+				if (err) throw err;
+				var dbo = db.db("mostWanted");
+				console.log(userData);
+				if (userData.loadAll != "true") {
+					dbo.collection("chatMessages").find().sort({ timestamp: -1 }).limit(100).toArray().then((result) => {
+						var uidList = []
+						for (var i = 0; i < result.length; i++) {
+							uidList.push({ uid: result[i].uid });
 						}
-						userRef = JSON.parse(JSON.stringify(userRef));
-						for (var i = 0; i < chat.length; i++) {
-							// io.emit("debug", [userRef, chat]);
-							// console.log(userRef[chat[i].uid])
-							// console.log(i, chat[i].nickname);
-							if (userRef[chat[i].uid] == undefined) {
-								chat[i].nickname = "Deleted User";
-								chat[i].username = "delUser";
-								chat[i].nameColor = "#000000";
-								chat[i].pfp = null;
-							} else {
+						uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
+						dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
+							var chat = Array.from(result).reverse();
+							var userRef = {};
+							for (var i = 0; i < users.length; i++) {
+								userRef[users[i].uid] = users[i];
+								// console.log(users[i].uid);
+							}
+							userRef = JSON.parse(JSON.stringify(userRef));
+							for (var i = 0; i < chat.length; i++) {
+								// io.emit("debug", [userRef, chat]);
+								// console.log(userRef[chat[i].uid])
+								// console.log(i, chat[i].nickname);
+								if (userRef[chat[i].uid] == undefined) {
+									chat[i].nickname = "Deleted User";
+									chat[i].username = "delUser";
+									chat[i].nameColor = "#000000";
+									chat[i].pfp = null;
+								} else {
+									chat[i].nickname = userRef[chat[i].uid].nickname;
+									chat[i].username = userRef[chat[i].uid].username;
+									chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+									chat[i].pfp = userRef[chat[i].uid].pfp;
+								}
+								delete chat[i].uid;
+							}
+							io.emit("sendChatMessage", chat);
+						})
+					})
+				} else {
+					dbo.collection("chatMessages").find().sort({ timestamp: -1 }).toArray().then((result) => {
+						var uidList = []
+						for (var i = 0; i < result.length; i++) {
+							uidList.push({ uid: result[i].uid });
+						}
+						uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
+						dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
+							var chat = Array.from(result).reverse();
+							var userRef = {};
+							for (var i = 0; i < users.length; i++) {
+								userRef[users[i].uid] = users[i];
+								// console.log(users[i].uid);
+							}
+							userRef = JSON.parse(JSON.stringify(userRef));
+							for (var i = 0; i < chat.length; i++) {
+								// io.emit("debug", [userRef, chat]);
+								// console.log(userRef[chat[i].uid])
+								// console.log(i, chat[i].nickname);
 								chat[i].nickname = userRef[chat[i].uid].nickname;
 								chat[i].username = userRef[chat[i].uid].username;
 								chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
 								chat[i].pfp = userRef[chat[i].uid].pfp;
+								delete chat[i].uid;
 							}
-							delete chat[i].uid;
-						}
-						io.emit("sendChatMessage", chat);
+							io.emit("sendChatMessage", chat);
+						})
 					})
-				})
-			} else {
-				dbo.collection("chatMessages").find().sort({ timestamp: -1 }).toArray().then((result) => {
-					var uidList = []
-					for (var i = 0; i < result.length; i++) {
-						uidList.push({ uid: result[i].uid });
-					}
-					uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
-					dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
-						var chat = Array.from(result).reverse();
-						var userRef = {};
-						for (var i = 0; i < users.length; i++) {
-							userRef[users[i].uid] = users[i];
-							// console.log(users[i].uid);
-						}
-						userRef = JSON.parse(JSON.stringify(userRef));
-						for (var i = 0; i < chat.length; i++) {
-							// io.emit("debug", [userRef, chat]);
-							// console.log(userRef[chat[i].uid])
-							// console.log(i, chat[i].nickname);
-							chat[i].nickname = userRef[chat[i].uid].nickname;
-							chat[i].username = userRef[chat[i].uid].username;
-							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
-							chat[i].pfp = userRef[chat[i].uid].pfp;
-							delete chat[i].uid;
-						}
-						io.emit("sendChatMessage", chat);
-					})
-				})
-			}
-		});
+				}
+			});
+		}
 	});
 
 	socket.on('chat message', (data) => {
@@ -133,42 +135,46 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on('getUpdate', (timestamp) => {
-		mongoClient.connect(mongoUrl, (err, db) => {
-			if (err) throw err;
-			var dbo = db.db("mostWanted");
-			dbo.collection("chatMessages").find({ timestamp: { $gt: parseInt(timestamp) } }).toArray().then((result) => {
-				if (result.length > 0) {
-					var uidList = []
-					for (var i = 0; i < result.length; i++) {
-						uidList.push({ uid: result[i].uid });
+		if (!xss(timestamp)) {
+			mongoClient.connect(mongoUrl, (err, db) => {
+				if (err) throw err;
+				var dbo = db.db("mostWanted");
+				dbo.collection("chatMessages").find({ timestamp: { $gt: parseInt(timestamp) } }).toArray().then((result) => {
+					if (result.length > 0) {
+						var uidList = []
+						for (var i = 0; i < result.length; i++) {
+							uidList.push({ uid: result[i].uid });
+						}
+						uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
+						dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
+							var chat = Array.from(result);
+							var userRef = {};
+							for (var i = 0; i < users.length; i++) {
+								userRef[users[i].uid] = users[i];
+							}
+							userRef = JSON.parse(JSON.stringify(userRef));
+							for (var i = 0; i < chat.length; i++) {
+								chat[i].nickname = userRef[chat[i].uid].nickname;
+								chat[i].username = userRef[chat[i].uid].username;
+								chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
+								chat[i].pfp = userRef[chat[i].uid].pfp;
+								delete chat[i].uid;
+							}
+							io.emit("sendChatMessage", chat);
+						})
 					}
-					uidList.filter((item, index) => { return uidList.indexOf(item) >= index; });
-					dbo.collection("users").find({ $or: uidList }).toArray().then((users) => {
-						var chat = Array.from(result);
-						var userRef = {};
-						for (var i = 0; i < users.length; i++) {
-							userRef[users[i].uid] = users[i];
-						}
-						userRef = JSON.parse(JSON.stringify(userRef));
-						for (var i = 0; i < chat.length; i++) {
-							chat[i].nickname = userRef[chat[i].uid].nickname;
-							chat[i].username = userRef[chat[i].uid].username;
-							chat[i].nameColor = userRef[chat[i].uid].nameColor == null ? "#000000" : userRef[chat[i].uid].nameColor;
-							chat[i].pfp = userRef[chat[i].uid].pfp;
-							delete chat[i].uid;
-						}
-						io.emit("sendChatMessage", chat);
-					})
-				}
+				});
 			});
-		});
+		}
 	})
 
 	socket.on('online', (nickname) => {
-		userList.push(nickname);
-		if (userList.length == connectedUsers) {
-			io.emit('userList', userList);
-			console.log(userList);
+		if (!xss(nickname)) {
+			userList.push(nickname);
+			if (userList.length == connectedUsers) {
+				io.emit('userList', userList);
+				console.log(userList);
+			}
 		}
 	});
 	setInterval(() => {
@@ -285,12 +291,12 @@ app.post("/editProfile", (req, res) => {
 		if (err) throw err;
 		var dbo = db.db("mostWanted");
 		form.parse(req, (err, fields, files) => {
-			dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
+			dbo.collection("users").find({ uid: fields.uid }).toArray().then((result) => {
 				console.log(result);
 				if (err) throw err;
 				var re = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
 				if (xss(fields.nickname) || xss(fields.status) || xss(fields.nameColor) || fields.nickname.includes("\"") || !re.test(fields.nameColor)) {
-					res.send({ message: "Hey! No xss :<", nickname: result.nickname, pfp: result.pfp});
+					res.send({ message: "Hey! No xss :<", nickname: result.nickname, pfp: result.pfp });
 				} else {
 					if (files.pfp.name != "") {
 						md5File(files.pfp.path, (err, hash) => {
@@ -314,7 +320,7 @@ app.post("/editProfile", (req, res) => {
 								toSet.pfp = fields.pfp;
 								if (Object.entries(toSet).length != 0) {
 									dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
-										dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
+										dbo.collection("users").find({ uid: fields.uid }).toArray().then((result) => {
 											res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
 										});
 									});
@@ -334,7 +340,7 @@ app.post("/editProfile", (req, res) => {
 						if (fields.nameColor != "#" || fields.nameColor != "") toSet.nameColor = fields.nameColor;
 						if (Object.entries(toSet).length != 0) {
 							dbo.collection("users").updateOne({ uid: fields.uid }, { $set: toSet }).then(() => {
-								dbo.collection("users").find({uid: fields.uid}).toArray().then((result) => {
+								dbo.collection("users").find({ uid: fields.uid }).toArray().then((result) => {
 									res.send({ message: "Profile updated. Please refresh.", nickname: result[0].nickname, pfp: result[0].pfp });
 								});
 							});
@@ -360,7 +366,7 @@ app.post("/api/upload", (req, res) => {
 	var fileName;
 	var form = new formidable.IncomingForm;
 	form.maxFileSize = 10 * 1024 * 1024;
-		form.parse(req)
+	form.parse(req)
 		.on("file", (name, file) => {
 			md5File(file.path, (err, hash) => {
 				if (err) throw err;
@@ -383,20 +389,20 @@ app.post("/api/upload", (req, res) => {
 				if (err) throw err;
 				var dbo = db.db("mostWanted");
 				if (type == "img") {
-					dbo.collection("chatMessages").insertOne({uid: uid, message: "<br/><img class='image-message' onload='if ((document.getElementById(\"chat-div\").scrollTop + document.getElementById(\"chat-div\").offsetHeight + this.height) >= document.getElementById(\"chat-div\").scrollHeight) document.getElementById(\"chat-div\").scrollTo(0, document.getElementById(\"chat\").offsetHeight);' style='max-height: 33vh;' src='/api/picture/?img=" + fileName + "'/>", type: type, timestamp: timestamp });
+					dbo.collection("chatMessages").insertOne({ uid: uid, message: "<br/><img class='image-message' onload='if ((document.getElementById(\"chat-div\").scrollTop + document.getElementById(\"chat-div\").offsetHeight + this.height) >= document.getElementById(\"chat-div\").scrollHeight) document.getElementById(\"chat-div\").scrollTo(0, document.getElementById(\"chat\").offsetHeight);' style='max-height: 33vh;' src='/api/picture/?img=" + fileName + "'/>", type: type, timestamp: timestamp });
 				} else if (type == "file") {
-					dbo.collection("chatMessages").insertOne({uid: uid, message: "<br/><a target='_blank' href='/api/file/?file=" + fileName + "'>" + fileName + "</a>", type: type, timestamp: timestamp });
+					dbo.collection("chatMessages").insertOne({ uid: uid, message: "<br/><a target='_blank' href='/api/file/?file=" + fileName + "'>" + fileName + "</a>", type: type, timestamp: timestamp });
 
 				}
 				io.emit("update");
-				res.send({success: "success"});
+				res.send({ success: "success" });
 			})
 		})
 });
 
 function xss(input) {
-	console.log(input == sanitizeHtml(input, {allowedTags: [], allowedAttributes: {}}));
-	return (sanitizeHtml(input, {allowedTags: [], allowedAttributes: {}}) != input);
+	console.log(input == sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }));
+	return (sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }) != input);
 }
 
 // https://stackoverflow.com/questions/3410464/how-to-find-indices-of-all-occurrences-of-one-string-in-another-in-javascript
