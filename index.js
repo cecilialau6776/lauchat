@@ -11,6 +11,7 @@ const favicon = require('serve-favicon');
 const md5File = require('md5-file');
 const jimp = require('jimp');
 const fs = require('fs');
+const mongoSanitize = require('express-mongo-sanitize');
 const $ = require('jquery');
 
 require('google-closure-library');
@@ -29,6 +30,8 @@ var bodyParser = require('body-parser');
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(mongoSanitize());
+
 //app.use("/public", express.static("pages/public"));
 var userList = [];
 var connectedUsers = 0;
@@ -463,7 +466,12 @@ async function login(username, password) {
 		})
 	});
 }
+
 fs.readFile(__dirname + "/port.txt", { encoding: 'utf-8' }, (err, port) => {
 	if (err) throw err;
 	http.listen(port, () => console.log('App listening on port ' + port + '!'));
 })
+
+function sanitize(input) {
+
+}
