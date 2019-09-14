@@ -295,7 +295,7 @@ function appendMessage(message, timestamp, data) {
     }
     if (data.type == "plaintext" || data.type == undefined) {
         var id = (data.id == undefined) ? "" : " id='" + data.username + data.id + "'";
-        message = goog.html.SafeHtml.unwrap(sanitizer.sanitize(message));
+        message = goog.html.SafeHtml.unwrap(goog.html.SafeHtml.htmlEscapePreservingNewlinesAndSpaces(message));
         var re = /(http:\/\/|https:\/\/)?([a-zA-Z\d\-]{1,}\.){1,}[a-zA-Z\d\-]{2,3}(\/[\w-.~!$&'()*+,;=]{0,}){0,}(\?([^\?&]{1,}=[^\?&]{1,})(&[^\?&]{1,}=[^\?&]{1,}){0,})?/;
         if (message.includes("*") || message.includes("~~")) {
             message = parse(message, "<strong>", "</strong>", "\\*{2}[^\\*]{0,}\\*{2}", "**");
