@@ -245,10 +245,10 @@ app.post('/api/register', (req, res) => {
 					login(userData.username, pw).then((data) => {
 						console.log(data);
 						res.send(data);
-					})
+					});
 				}
 			});
-		})
+		});
 });
 
 app.post('/api/login', (req, res) => {
@@ -425,7 +425,7 @@ function getIndicesOf(searchStr, str, caseSensitive) {
 
 async function register(userData) {
 	return new Promise((resolve, reject) => {
-		if (xss(userData.username) != userData.username || userData.username.contains("\"")) {
+		if (xss(userData.username) || userData.username.includes("\"")) {
 			resolve({ status: "failed", message: "Hey! No xss :<" });
 		} else if (userData.username == "" || userData.password == "") {
 			resolve({ status: "failed", message: "Neither the username nor password can be blank." });
