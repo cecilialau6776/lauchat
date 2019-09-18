@@ -437,7 +437,8 @@ async function register(userData) {
 				userData.username.includes("[") ||
 				userData.username.includes("]") ||
 				userData.username.includes("{") ||
-				userData.username.includes("}")
+				userData.username.includes("}") ||
+				userData.username.includes(" ")
 			) {
 			resolve({ status: "failed", message: "Hey! No xss :<" });
 		} else if (userData.username == "" || userData.password == "") {
