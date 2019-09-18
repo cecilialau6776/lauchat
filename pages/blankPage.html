@@ -60,7 +60,7 @@
                     $.ajax({
                         url: "/editProfile",
                         method: "POST",
-                        contentType: "multipart/form-data",
+                        contentType: false,
                         processData: false,
                         data: data,
                         success: (data) => {
