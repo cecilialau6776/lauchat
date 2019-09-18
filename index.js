@@ -425,7 +425,20 @@ function getIndicesOf(searchStr, str, caseSensitive) {
 
 async function register(userData) {
 	return new Promise((resolve, reject) => {
-		if (xss(userData.username) || userData.username.includes("\"")) {
+		if (xss(userData.username) ||
+				userData.username.includes("\"") ||
+				userData.username.includes("\\") ||
+				userData.username.includes(",") ||
+				userData.username.includes("*") ||
+				userData.username.includes("#") ||
+				userData.username.includes(">") ||
+				userData.username.includes("+") ||
+				userData.username.includes("~") ||
+				userData.username.includes("[") ||
+				userData.username.includes("]") ||
+				userData.username.includes("{") ||
+				userData.username.includes("}")
+			) {
 			resolve({ status: "failed", message: "Hey! No xss :<" });
 		} else if (userData.username == "" || userData.password == "") {
 			resolve({ status: "failed", message: "Neither the username nor password can be blank." });
