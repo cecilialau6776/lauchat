@@ -229,25 +229,31 @@ app.post('/api/register', (req, res) => {
 	var form = new formidable.IncomingForm();
 	var userData = { "admin": 0, "pfp": null };
 	var pw;
+	let stop = false;
 	form.parse(req)
 		.on('field', function (name, value) {
 			userData[name] = value;
+			if (xss(value) || xss(name)) stop = true;
 		})
 		.on('end', function () {
-			pw = userData.password;
-			userData.username = userData.username.trim();
-			userData.password = userData.password.trim();
-			userData["nickname"] = userData.username;
-			register(userData).then((registerOutput) => {
-				if (registerOutput.status == "failed") {
-					res.send(registerOutput);
-				} else {
-					login(userData.username, pw).then((data) => {
-						console.log(data);
-						res.send(data);
-					});
-				}
-			});
+			if (stop) {
+				res.end();
+			} else {
+				pw = userData.password;
+				userData.username = userData.username.trim();
+				userData.password = userData.password.trim();
+				userData["nickname"] = userData.username;
+				register(userData).then((registerOutput) => {
+					if (registerOutput.status == "failed") {
+						res.send(registerOutput);
+					} else {
+						login(userData.username, pw).then((data) => {
+							console.log(data);
+							res.send(data);
+						});
+					}
+				});
+			}
 		});
 });
 
@@ -255,18 +261,24 @@ app.post('/api/login', (req, res) => {
 	var form = new formidable.IncomingForm();
 	var userData = {};
 	var pw;
+	let stop = false;
 	form.parse(req)
 		.on('field', function (name, value) {
 			userData[name] = value;
+			if (xss(value) || xss(name)) stop = true;
 		})
 		.on('end', function () {
-			pw = userData.password;
-			userData.username = userData.username.trim();
-			userData.password = userData.password.trim();
-			login(userData.username, pw).then((data) => {
-				console.log(data);
-				res.send(data);
-			})
+			if (stop) {
+				res.end();
+			} else {
+				pw = userData.password;
+				userData.username = userData.username.trim();
+				userData.password = userData.password.trim();
+				login(userData.username, pw).then((data) => {
+					console.log(data);
+					res.send(data);
+				})
+			}
 		});
 });
 
@@ -274,15 +286,15 @@ app.post('/api/online', (req, res) => {
 	mongoClient.connect(mongoUrl, { useNewUrlParser: true }, (err, db) => {
 		if (err) throw err;
 		var dbo = db.db("mostWanted");
-		dbo.collection("users").findOne({ uid: req.body.uid, token: req.body.token }, (err, data) => {
-			if (err) throw err;
-			if (data == null) {
-				res.send("Oh no! You probably messed with your local storage. Logging in hasn't been implemented yet, so you can make a new user by deleting your uid.");
-			} else {
+		if (xss(req.body.uid) || xss(req.body.token)) {
+			res.end();
+		} else {
+			dbo.collection("users").findOne({ uid: req.body.uid, token: req.body.token }, (err, data) => {
+				if (err) throw err;
 				res.send(data);
-			}
-		})
-	})
+			});
+		}
+	});
 });
 
 app.post("/editProfile", (req, res) => {
@@ -401,7 +413,7 @@ app.post("/api/upload", (req, res) => {
 });
 
 function xss(input) {
-	console.log(input == sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }));
+	// console.log(input == sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }));
 	return (sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }) != input);
 }
 
@@ -476,7 +488,7 @@ async function login(username, password) {
 					if (err) throw err;
 					if (result) {
 						var token = crypto.randomBytes(32).toString('hex');
-						dbo.collection("users").updateOne({ _id: json["_id"] }, { $set: { token: token } });
+						dbo.collection("users").updateOne({ uid: json.uid }, { $set: { token: token } });
 						resolve({ status: "success", uid: json["uid"], token: token, username: json.username, nickname: json.nickname, pfp: json.pfp });
 					} else {
 						resolve({ status: "failure", message: "Incorrect username or password" });
