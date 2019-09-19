@@ -232,6 +232,7 @@ app.post('/api/register', (req, res) => {
 	let stop = false;
 	form.parse(req)
 		.on('field', function (name, value) {
+			if (name == "username" || name == "password")
 			userData[name] = value;
 			if (xss(value) || xss(name)) stop = true;
 		})
