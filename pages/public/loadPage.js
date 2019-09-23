@@ -210,7 +210,7 @@ if (localStorage.getItem("uid") == null) {
                     socket.on('userList', (userList) => {
                         $("#userList").text("");
                         for (var i = 0; i < userList.length; i++) {
-                            $("#userList").append("<p>" + userList[i] + "</p>");
+                            $("#userList").append("<p>" + goog.html.SafeHtml.unwrap(goog.html.SafeHtml.htmlEscapePreservingNewlinesAndSpaces(userList[i])) + "</p>");
                         }
                     })
                 }
