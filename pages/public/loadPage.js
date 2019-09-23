@@ -192,7 +192,7 @@ if (localStorage.getItem("uid") == null) {
                                 var oldHeight = document.getElementById("chat-div").scrollHeight;
                                 appendMessage(msgData[i].message, t, { type: msgData[i].type, username: data[i].username, nickname: data[i].nickname, pfp: data[i].pfp});
                                 if (!nameColorsLoaded.includes(data[i].username) && data[i].nameColor != null) {
-                                    $("#nameColors").append("." + data[i].username + "-username {color: " + data[i].nameColor + "}");
+                                    $("#nameColors").append("." + data[i].username.hashCode() + "-username {color: " + data[i].nameColor + "}");
                                     nameColorsLoaded.push(data[i].username);
                                 }
                                 console.log(oldHeight);
@@ -313,7 +313,7 @@ function appendMessage(message, timestamp, data) {
                     <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data.pfp + `">
                 </div>
                 <div style="padding-left: 1%; width: calc(100% - 48px);">
-                    <span class="` + data.username + `-username username">` + data.nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'"+ id + ">(" + t + `)</span>
+                    <span class="` + data.username.hashCode() + `-username username">` + data.nickname + "</span>&nbsp;<span style='font-size:66.66%;color:darkgrey'"+ id + ">(" + t + `)</span>
                     ` + message + `
                 </div>
             </div>`
@@ -367,3 +367,17 @@ $("img.image-message").each(() => {
         }
     })
 })
+
+String.prototype.hashCode = function() {
+    var hash = 0, i, chr;
+    if (this.length === 0) return hash;
+    for (i = 0; i < this.length; i++) {
+      chr   = this.charCodeAt(i);
+      hash  = ((hash << 5) - hash) + chr;
+      //hash |= 0; // Convert to 32bit integer
+    }
+    hash = "u" + (Math.abs(hash));
+    console.log(hash);
+    return hash;
+    
+  };
