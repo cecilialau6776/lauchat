@@ -308,7 +308,7 @@ function appendMessage(message, timestamp, data) {
         message = "<p>" + message + "</p>"
     }
     $("#chat").append(`
-            <div class="row message ` + data.username + `-message">
+            <div class="row message ` + data.username.hashCode() + `-message">
                 <div style="width:48px">
                     <img style="height:48px;width:48px;" src="/api/userPfp?pfp=` + data.pfp + `">
                 </div>
